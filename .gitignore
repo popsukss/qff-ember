@@ -1,0 +1,9 @@
+data/raw/
+*.npz
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+*.aux
+*.log
+*.out
+*.pdf
