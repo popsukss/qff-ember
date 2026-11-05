@@ -83,7 +83,7 @@ read-out is trained (42 numbers).\\
 random circuit.\\
 \textbf{Hardware} & One batched IBM job: fire ZF015 (Yellowknife), 10--20 Aug 2023, 11 days $\times$ 8 sectors = 88
 circuits.\\
-\textbf{Result} & Reservoir $\approx$ classical reservoirs, slightly worse; FBP physics best at both leads. \textbf{No quantum advantage.}\\
+\textbf{Result} & Reservoir $\approx$ classical reservoirs, slightly worse. FBP lowest mean error; persistence best outline overlap; learned models best on growing sectors. \textbf{No quantum advantage.}\\
 \textbf{Credit} & Extends PronoiaQ's reservoir (Quantathon 2026, 2nd place + Best Team).\\
 \end{tabularx}
 \end{glance}
@@ -647,6 +647,24 @@ Random circuit, 10 seeds & 0.361 & $-0.03$ & 0.946 & 0.12\\
 \end{tabular}
 \end{center}
 
+Shape and growing sectors (IoU of the predicted vs true octagon, higher is better; MAE on sectors with $y>0$):
+\begin{center}\small
+\begin{tabular}{@{}l c c c c@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{IoU}} & \multicolumn{2}{c}{\textbf{MAE, growing (km)}}\\
+\textbf{Model} & +24\,h & +72\,h & +24\,h & +72\,h\\
+\midrule
+Persistence & \textbf{0.918} & \textbf{0.832} & 1.705 & 3.637\\
+FBP physics & 0.781 & 0.710 & 1.593 & 2.690\\
+Raw window ridge & 0.766 & 0.672 & 1.425 & 2.365\\
+ESN, 20 units & 0.763 & 0.669 & 1.429 & 2.364\\
+\textbf{Quantum reservoir} & 0.757 & 0.663 & 1.456 & 2.389\\
+Reservoir + raw (E7) & 0.765 & 0.671 & \textbf{1.421} & \textbf{2.360}\\
+Random circuit & 0.761 & 0.666 & 1.446 & 2.381\\
+\bottomrule
+\end{tabular}
+\end{center}
+
 Paired fire-bootstrap differences, reservoir minus reference (negative = reservoir better):
 \begin{center}\small
 \begin{tabular}{@{}l c c@{}}
@@ -661,7 +679,9 @@ ESN, 20 units & $+0.010$ [0.006, 0.013] & $+0.008$ [$-0.002$, 0.018]\\
 \end{center}
 
 \begin{itemize}
-\item FBP is best at both leads. It uses the modelled spread rate \code{ros}; the reservoir inputs do not.
+\item FBP has the lowest MAE at both leads. It uses the modelled spread rate \code{ros}; the reservoir inputs do not.
+\item No model wins on every measure (table below). Persistence has the best outline overlap: most sectors do not
+  move, and it predicts exactly 0 there. On growing sectors only, every learned model beats FBP and persistence.
 \item The reservoir beats persistence only at +72\,h, and so does every ridge model. It trails the raw ridge at both
   leads; the reservoir adds nothing over its own inputs (E7).
 \item Seeds (E4): reservoir $0.362\pm0.008$ / $0.950\pm0.016$, random circuit $0.361\pm0.007$ / $0.946\pm0.016$.
