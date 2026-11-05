@@ -11,6 +11,7 @@ from time import perf_counter
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+import yaml
 from shapely.geometry import Polygon
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -33,6 +34,7 @@ def main() -> None:
     parser.add_argument("--perimeters", type=Path, help="Official perimeter ZIP")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    config = yaml.safe_load((Path(__file__).resolve().parents[1] / "config.yaml").read_text())["data"]
     start = perf_counter()
     hot = pd.read_parquet(args.hotspots or f"data/processed/hotspots_{args.year}.parquet")
     sectors = pd.read_parquet(args.sectors or f"data/processed/sectors_{args.year}.parquet")
@@ -41,7 +43,8 @@ def main() -> None:
     official = polygons.to_crs(6933).set_index("uid").geometry
     per_fire = []
     for uid, fire in hot.groupby("uid", sort=True):
-        days, xy, lat0, lon0 = fire_coordinates(fire)
+        days, xy, lat0, lon0 = fire_coordinates(fire, isolation_km=config["isolation_km"],
+                                               connect_km=config["connect_km"])
         final = sectors[sectors.uid == uid].sort_values(["date", "sector"]).tail(8)
         bearings = np.deg2rad(final.sector.to_numpy() * 45.0)
         radius = final.r_km.to_numpy()
@@ -51,7 +54,7 @@ def main() -> None:
         if not radial.is_valid:
             radial = radial.buffer(0)
         radial = gpd.GeoSeries([radial], crs=4326).to_crs(6933).iloc[0]
-        activated = activation_days(xy, days, 2.0) <= days.max()
+        activated = activation_days(xy, days, config["isolation_km"]) <= days.max()
         # Buffer in a fire-centred equidistant metric CRS so 375 m has local meaning.
         local_crs = f"+proj=aeqd +lat_0={lat0} +lon_0={lon0} +datum=WGS84 +units=m"
         points = gpd.GeoSeries(gpd.points_from_xy(fire.loc[activated, "lon"], fire.loc[activated, "lat"]),
