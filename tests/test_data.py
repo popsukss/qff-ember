@@ -188,3 +188,69 @@ def test_real_e10_report():
     assert 0.0 <= rep["median_iou"] <= 1.0
     assert len(rep["per_fire"]) >= 20
     assert all(0.0 <= f["iou"] <= 1.0 for f in rep["per_fire"])
+
+
+# ---------------------------------------------------------------- U1c: spatial continuity
+def _north_cluster(uid, day, north_km, n=6):
+    """A separate fire: tight cluster (not isolated) far from fire 1's core."""
+    return [_pt(uid, day, 0.2 * (i % 3), north_km + 0.2 * (i // 3)) for i in range(n)]
+
+
+def with_second_ignition(bridge_day: int | None = None) -> pd.DataFrame:
+    """Fire 1 (east growth) plus a separate ignition 40 km north from day 5, growing north 1 km/day.
+    Optionally, on bridge_day a chain of detections every 1.5 km links the core to it."""
+    df = synthetic()
+    rows = []
+    for d in range(5, 13):
+        rows += _north_cluster(1, d, 40.0 + (d - 5))
+    if bridge_day is not None:
+        for d in range(bridge_day, 13):
+            rows += [_pt(1, d, 0.0, 1.5 * j) for j in range(1, 27)]  # 1.5 .. 39 km
+    return pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
+
+
+def test_separate_ignition_inside_group_does_not_jump():
+    tab = build_sectors(with_second_ignition())
+    north = tab[(tab.uid == 1) & (tab.sector == 0)]
+    assert north.r_km.max() < 1.0
+    assert north.dd_km.max() < 1.0
+    # east growth is unaffected
+    assert _row(tab, 1, 7, 2).r_km == pytest.approx(6.0, abs=0.06)
+
+
+def test_bridge_links_cluster_on_bridge_day_only():
+    tab = build_sectors(with_second_ignition(bridge_day=9))
+    north = tab[(tab.uid == 1) & (tab.sector == 0)].set_index("day_index")
+    assert north.loc[8, "r_km"] < 1.0
+    assert north.loc[9, "r_km"] > 40.0  # joined once a continuous chain exists
+
+
+def test_bridge_is_causal():
+    full = build_sectors(with_second_ignition(bridge_day=9))
+    cut = with_second_ignition(bridge_day=9)
+    cut = cut[cut.rep_date < pd.Timestamp("2023-07-09", tz="UTC")]
+    part = build_sectors(cut)
+    cols = ["r_km", "dd_km"]
+    a = full[(full.uid == 1) & (full.day_index <= 8)][cols].reset_index(drop=True)
+    b = part[(part.uid == 1) & (part.day_index <= 8)][cols].reset_index(drop=True)
+    pd.testing.assert_frame_equal(a, b)
+
+
+def test_day_one_centre_uses_largest_cluster():
+    df = synthetic()
+    extra = [_pt(1, 1, 0.1 * i, -50.0) for i in range(3)]  # smaller day-1 cluster 50 km south
+    tab = build_sectors(pd.concat([df, pd.DataFrame(extra)], ignore_index=True))
+    south = tab[(tab.uid == 1) & (tab.sector == 4)]
+    assert south.r_km.max() < 1.0
+    assert _row(tab, 1, 7, 2).r_km == pytest.approx(6.0, abs=0.06)
+
+
+def test_real_2023_no_implausible_jumps():
+    tab = pd.read_parquet(SECTORS_2023)
+    assert tab.dd_km.max() <= 50.0
+    assert (tab.dd_km > 30.0).sum() <= 20
+
+
+def test_real_e10_not_worse_after_continuity():
+    rep = json.loads(E10_2023.read_text())
+    assert rep["median_iou"] >= 0.60
