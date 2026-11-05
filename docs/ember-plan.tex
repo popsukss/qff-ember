@@ -411,6 +411,10 @@ Outline and time-to-reach & no & arithmetic on predictions\\
 Join the 8 predicted points into the predicted outline. $D$ = distance from the centroid to the town, $k$ = the sector
 the town lies in. Show the time-to-reach only when $\hat y_k^{(1)}>0$. \ours
 
+\caut{ZF015 (E8): the single-sector formula gives 80--1355 days for Yellowknife (66.7\,km, sector 3). The fire's
+closest approach is through the south lobe (sector 4), about 25\,km away. Do not show a single-sector ETA; show the
+outline and the closest-approach distance instead.}
+
 % =====================================================================
 \section{Baselines and controls}
 
@@ -474,7 +478,7 @@ E2 & Error by sector relative to wind (downwind vs upwind) & ``where it works'' 
 E3 & Sweep $L$, $\gamma$, input map on validation & frozen config & R2\\
 E4 & Random-circuit control, 10 seeds; seed spread of our reservoir, 5 seeds & mean $\pm$ sd & R2\\
 E5 & Shots $10^2,10^3,2{\times}10^3,10^4$ on Aer, with and without noise & MAE-vs-shots curve & R4\\
-E6 & Hardware, ZF015 10--20 Aug, 88 circuits, Z basis, 2000 shots & hardware vs noisy sim vs exact & R4\\
+E6 & Hardware, ZF015 10--20 Aug, 88 circuits, Z basis, 10{,}000 shots (chosen from E5) & hardware vs noisy sim vs exact & R4\\
 E7 & Ridge with and without the raw inputs added to the features & is the gain from the reservoir? & R3\\
 E8 & ZF015 case study, 10--20 Aug 2023 & map: rebuilt vs predicted outline, time-to-reach town & R5\\
 E9 & Sparse data: drop 15/30/45\% of hotspot days, carry last value & robustness curve, reservoir vs ESN & R1\\
@@ -511,10 +515,10 @@ Rough fidelity & $(1-3.9{\times}10^{-3})^{20}\approx0.925$ (FakeFez median CZ er
 \subsection{Steps}
 \begin{enumerate}
 \item Transpile one circuit; check CZ count $=20$. If higher, fix the layout before anything else.
-\item \textbf{Pilot:} 4 circuits. Read QPU seconds used. Scale to the full circuit count. \todo{R4: usage field in
-  runtime 0.51}
+\item \textbf{Pilot:} 4 circuits. Read QPU seconds used. Scale to the full circuit count. \veri{skipped: main job
+  used 238\,s for 88 circuits $\times$ 10{,}000 shots (\code{job.usage()}, 3.95 resource units)}
 \item If the estimate is $>5$ min: drop to 1000 shots, or keep only the 3 sectors facing the town.
-\item \textbf{Main run:} all circuits in \textbf{one} \code{SamplerV2} job. Submit Thu 09:00.
+\item \textbf{Main run:} all circuits in \textbf{one} \code{SamplerV2} job. Submitted by Pop, Thu 5 Nov 05:06\,UTC; done in under 5 min. \veri{job log}
 \item Train ridge on Aer features (noise model of the same backend, same shots). Test on hardware features. \ours
 \item If hardware error is much worse: run $\approx100$ training circuits on hardware and refit the ridge on hardware
   features. Report both.
@@ -666,6 +670,29 @@ ESN, 20 units & $+0.010$ [0.006, 0.013] & $+0.008$ [$-0.002$, 0.018]\\
 \item Decision (Pop, 5 Nov): report as is. No hybrid model, no second look at 2023.
 \end{itemize}
 
+\subsection{E6: real hardware (ibm\_fez, ZF015, 10--20 Aug 2023)}
+Job \code{dbm0tm58ft8s738tu920}: 88 circuits, 10{,}000 shots each, 20 CZ, no SWAP. QPU time 238\,s (of 600\,s).
+Frozen exact-trained Z-only read-out, applied unchanged to each feature source. 88 sector windows from one fire.
+\begin{center}\small
+\begin{tabular}{@{}l c c c@{}}
+\toprule
+\textbf{Feature source} & \textbf{Feature error} (mean $|\Delta|$) & \textbf{+24\,h MAE (km)} & \textbf{+72\,h MAE (km)}\\
+\midrule
+Exact (simulator) & 0 & 0.272 & 1.001\\
+FakeFez (noisy simulator) & 0.044 & 0.277 & 1.006\\
+\textbf{ibm\_fez hardware} & 0.073 & 0.258 & 0.979\\
+Persistence & -- & 0.301 & 1.228\\
+\bottomrule
+\end{tabular}
+\end{center}
+\begin{itemize}
+\item The hardware features follow the exact ones closely, but they shrink towards 0 at large $|\langle Z\rangle|$
+  (decay and readout error).
+\item The forecasts survive the noise: hardware MAE is within 0.02\,km of exact at both leads.
+\item The hardware being slightly lower is not a real gain: it is one fire, the 88 rows are correlated, and 93\% of
+  the +24\,h targets are 0. No CI is given and nothing is claimed beyond this case.
+\end{itemize}
+
 % =====================================================================
 \section{Pitch and questions}
 
@@ -718,7 +745,7 @@ Hotspot weather represents the fire's weather & supported (modelled) & hotspot a
 Chain needs no SWAPs on heavy-hex & \textbf{yes} & FakeFez transpile: CZ $=20$, depth 41\\
 Reservoir matches ESN here & \textbf{close, slightly worse} & E1: $+0.010$\,km at +24\,h (paired CI 0.006--0.013)\\
 Reservoir helps at 24\,h downwind & \textbf{no} & E1, E2: loses to persistence in every wind bin at +24\,h\\
-Hardware reproduces simulation & unknown & E6 decides\\
+Hardware reproduces simulation & yes, on one fire & E6: MAE within 0.02\,km of exact\\
 Quantum advantage & \textbf{not claimed} & no source supports it\\
 \bottomrule
 \end{tabularx}
