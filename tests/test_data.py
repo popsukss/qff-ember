@@ -222,7 +222,17 @@ def test_bridge_links_cluster_on_bridge_day_only():
     tab = build_sectors(with_second_ignition(bridge_day=9))
     north = tab[(tab.uid == 1) & (tab.sector == 0)].set_index("day_index")
     assert north.loc[8, "r_km"] < 1.0
-    assert north.loc[9, "r_km"] > 40.0  # joined once a continuous chain exists
+    # joined once a continuous chain exists, but the edge advances at most max_advance_km (30) per day
+    assert 29.5 < north.loc[9, "r_km"] <= north.loc[8, "r_km"] + 30.0 + 1e-9
+    assert north.loc[10, "r_km"] > 40.0
+
+
+def test_daily_advance_is_capped():
+    tab = build_sectors(with_second_ignition(bridge_day=9), max_advance_km=30.0)
+    assert tab.dd_km.max() <= 30.0 + 1e-9
+    loose = build_sectors(with_second_ignition(bridge_day=9), max_advance_km=100.0)
+    north = loose[(loose.uid == 1) & (loose.sector == 0)].set_index("day_index")
+    assert north.loc[9, "r_km"] > 40.0  # without the cap the whole chain counts at once
 
 
 def test_bridge_is_causal():
@@ -247,8 +257,8 @@ def test_day_one_centre_uses_largest_cluster():
 
 def test_real_2023_no_implausible_jumps():
     tab = pd.read_parquet(SECTORS_2023)
-    assert tab.dd_km.max() <= 50.0
-    assert (tab.dd_km > 30.0).sum() <= 20
+    assert tab.dd_km.max() <= 30.0 + 1e-9
+    assert (tab.dd_km > 20.0).sum() <= 120
 
 
 def test_real_e10_not_worse_after_continuity():

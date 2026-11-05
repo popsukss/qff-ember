@@ -11,6 +11,7 @@ data:
   min_final_area_km2: 10.0
   isolation_km: 2.0       # drop detections with no other detection of the same fire within this distance
   connect_km: 2.0         # a detection joins the fire only if within this distance of already-joined detections
+  max_advance_km: 30.0    # a sector edge may advance at most this per day; farther detections at their joining day never count (merged fires)
   forecast_from_day: 3    # first day_index used as a forecast origin
   max_masked_in_window: 2
 
