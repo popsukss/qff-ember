@@ -83,7 +83,7 @@ read-out is trained (42 numbers).\\
 random circuit.\\
 \textbf{Hardware} & One batched IBM job: fire ZF015 (Yellowknife), 10--20 Aug 2023, 11 days $\times$ 8 sectors = 88
 circuits.\\
-\textbf{Claim} & Parity with classical, possible edge at +24\,h. \textbf{No quantum advantage.}\\
+\textbf{Result} & Reservoir $\approx$ classical reservoirs, slightly worse; FBP physics best at both leads. \textbf{No quantum advantage.}\\
 \textbf{Credit} & Extends PronoiaQ's reservoir (Quantathon 2026, 2nd place + Best Team).\\
 \end{tabularx}
 \end{glance}
@@ -111,8 +111,9 @@ circuits.\\
 \tocsec{7}{Hardware plan}
 \tocsec{8}{Team, interfaces, timeline}
 \tocsec{9}{Expected outcomes}
-\tocsec{10}{Pitch and questions}
-\tocsec{11}{Soundness audit}
+\tocsec{10}{Results (test 2023, scored once)}
+\tocsec{11}{Pitch and questions}
+\tocsec{12}{Soundness audit}
 \par\noindent\hyperlink{refs}{\textbf{--}\quad References}\par
 
 \subsection*{How to read the tags}
@@ -186,8 +187,8 @@ prescribed-burn weather windows, but only on the Lorenz-63 toy system, simulated
 \begin{itemize}
 \item Archive: \url{https://cwfis.cfs.nrcan.gc.ca/downloads/hotspots/archive/}, \code{<YEAR>\_hotspots.zip}
   (2012--2023, all HTTP 200). 2023: one CSV, 3{,}674{,}409 rows, 35 columns, 748\,MB unzipped. \veri{perimeter-check.md}
-\item 2018--2022 zips not yet downloaded: $\approx360$\,MB in total. \todo{R1: download into
-  \code{data/raw/cwfis\_perimeters/}}
+\item 2018--2022 zips downloaded into \code{data/raw/cwfis\_perimeters/} (sizes match the server). Same columns
+  every year; no negative weather values in Canada. \veri{U1b}
 \item Each row = one satellite detection (MODIS or VIIRS). \code{rep\_date} = UTC time. \code{lat, lon} in degrees.
   \veri{CSV}
 \item Each row also carries local-noon weather and codes: \code{ws} (km/h), \code{wd}, \code{rh}, \code{isi},
@@ -216,7 +217,11 @@ method slide.
 For fire $f$, let $H_f(t)$ = all its hotspots detected up to the end of UTC day $t$.
 \begin{enumerate}
 \item Drop isolated detections: points with no other detection of $f$ within 2\,km. \ours
-\item Centre $c$ = mean position of the first day's hotspots (ignition area). Fixed for the life of the fire. \ours
+\item Seed = largest cluster of day-1 hotspots (single linkage, 2\,km). Centre $c$ = its mean position. Fixed for the
+  life of the fire. \ours
+\item A hotspot joins the fire only through a chain of hotspots each $\le2$\,km apart, starting from the seed. \ours
+\item After day 1, a joining hotspot counts only if it lies within yesterday's edge $+30$\,km in its wedge;
+  otherwise it never counts (another fire merging in). \ours
 \item Wedge $k$ = bearings $45^\circ k\pm22.5^\circ$ from $c$.
 \end{enumerate}
 \[
@@ -236,7 +241,10 @@ Cloud, smoke, satellite gaps & days with no detection $\Rightarrow$ $\Delta d=0$
 missing-day mask; E9 tests this.\\
 Pixel size 375\,m (VIIRS) -- 1\,km (MODIS) & edge error $\sim$0.5\,km. Report MAE in km next to this.\\
 Inputs and targets from the same hotspots & skill is against reconstructed edges, not ground truth. Say so.\\
-Fires merging & two uids touching $\Rightarrow$ drop both after the merge day. \ours\\
+Several ignitions in one perimeter & without rules 3--4, one-day jumps up to 144\,km. With them: max 30\,km/day;
+2023: 4.3\% of hotspots never count, in 23 of 392 fires. A merged fire can still creep in 30\,km steps. \veri{U1c}\\
+Rebuilt vs official final outline & E10, 2023: median IoU 0.65 (8-point outline), 0.83 (buffered hotspots).
+\veri{e10\_2023.json}\\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -290,8 +298,8 @@ Gaps & Day without hotspots: $\Delta d_k=0$, weather carried, mask set. Drop win
 \item The 8 sectors of one fire-day are not independent, and neither are consecutive days of one fire.
   Bootstrap \textbf{by fire}, not by row, for every error bar.
 \item 2023 was an extreme year. Test errors may be larger than validation errors. Report both; do not retune on test.
-\item Number of usable fires per year is not yet counted (needs 2018--2022 hotspots). \todo{R1: count; if thin,
-  train on 2018--2022 and validate on a held-out set of 2022 fires}
+\item Usable fires: train 378 (2018: 134, 2019: 44, 2020: 7, 2021: 193), val 102, test 392. Forecast fire-days:
+  14{,}654 / 4{,}763 / 20{,}248. \veri{fire\_counts.json}
 \end{itemize}
 \end{watch}
 
@@ -316,8 +324,8 @@ the whole window, recent days strongest. Measuring ends the run; the next sample
 \textbf{Symbol} & \textbf{Value} & \textbf{Meaning}\\
 \midrule
 $n$ & 5 & qubits, one per input \supp{PronoiaQ}\\
-$L$ & 5 & window in days; sweep 3, 5, 7 \ours\\
-$\gamma$ & $\pi/2$ & encoding gain; sweep $\pi/4,\pi/2,\pi$ \supp{PronoiaQ}\\
+$L$ & 5 & window in days; E3 swept 3, 5, 7 on 2022, chose 5 \veri{frozen\_config.json}\\
+$\gamma$ & $\pi/4$ & encoding gain; E3 swept $\pi/4,\pi/2,3\pi/4$ on 2022, chose $\pi/4$ \veri{frozen\_config.json}\\
 $g_i,a_i,b_i$ & random, seed 7 & frozen, never trained \supp{PronoiaQ}\\
 \bottomrule
 \end{tabularx}
@@ -425,7 +433,7 @@ ESN & tanh reservoir, 5 and 20 units, \textbf{fully connected}, same ridge & sam
 Random circuit & same circuit, Haar-random entangler, 10 seeds & tuned dynamics vs just ``quantum''
 \supp{notes ch.~8}\\
 Reset reservoir & Fujii--Nakajima style: reset input qubits each day, hidden qubits keep memory (simulation only) &
-the other standard reservoir design \supp{Fujii--Nakajima 2017}\\
+the other standard reservoir design \supp{Fujii--Nakajima 2017} \caut{not run: time}\\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -444,7 +452,7 @@ Scores per lead $h$:
 \mathrm{IoU}=\frac{|\hat P\cap P|}{|\hat P\cup P|}
 \]
 $\mathrm{SS}_h\le0$ means no better than persistence. $P,\hat P$ = observed and predicted outlines. Also report
-$\mathrm{MAE}$ on the fastest-growing quarter of rows (where under-prediction is dangerous). \ours
+$\mathrm{MAE}$ on growing rows, $y>0$ (where under-prediction is dangerous). 91\% of rows do not grow, so a ``fastest quarter'' would be all zeros. \ours
 
 \begin{watch}
 \textbf{Operational spread models know more than we do.} Canadian fire centres run the Fire Behaviour Prediction
@@ -494,7 +502,7 @@ Circuits & ZF015, 10--20 Aug 2023: $11\times8=88$ (Z basis). Hotspots on all 11 
 Shots & 2000 each $\Rightarrow176{,}000$ total\\
 Shot noise & $\mathrm{SE}\le1/\sqrt{2000}=0.022$ per feature\\
 Two-qubit gates & $L(n-1)=5\times4=20$ CZ, zero SWAPs\\
-Rough fidelity & $(1-3{\times}10^{-3})^{20}\approx0.94$ (two-qubit gates only) \supp{notes ch.~2}
+Rough fidelity & $(1-3.9{\times}10^{-3})^{20}\approx0.925$ (FakeFez median CZ error; two-qubit gates only) \veri{hardware pilot}
 \caut{check ibm\_fez's calibration error}\\
 \bottomrule
 \end{tabularx}
@@ -613,6 +621,52 @@ Hardware worse than noisy sim; refitting on hardware narrows the gap & size unkn
 grows, not where fires start), ``replaces fire-spread models''.
 
 % =====================================================================
+\section{Results (test 2023, scored once)}
+Configuration chosen on 2022 only (E3: $L=5$, $\gamma=\pi/4$, map $w_k$, ISI, $\Delta d_k$, BUI, RH), frozen with a hash
+of \code{config.yaml}, then 2023 loaded and scored once. Features: exact noiseless expectation values. 392 fires.
+\veri{metrics.csv, recomputed independently}
+
+\begin{center}\small
+\begin{tabular}{@{}l c c c c@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{+24\,h}} & \multicolumn{2}{c}{\textbf{+72\,h}}\\
+\textbf{Model} & MAE (km) [95\% CI] & SS & MAE (km) [95\% CI] & SS\\
+\midrule
+Persistence & 0.349 [0.307, 0.389] & 0 & 1.070 [0.933, 1.196] & 0\\
+FBP physics & \textbf{0.262} [0.233, 0.289] & \textbf{0.25} & \textbf{0.694} [0.609, 0.772] & \textbf{0.35}\\
+Raw window ridge & 0.348 [0.319, 0.375] & 0.00 & 0.920 [0.840, 0.990] & 0.14\\
+ESN, 20 units & 0.350 [0.322, 0.376] & 0.00 & 0.934 [0.858, 1.004] & 0.13\\
+\textbf{Quantum reservoir} & 0.360 [0.330, 0.387] & $-0.03$ & 0.943 [0.864, 1.015] & 0.12\\
+Reservoir + raw (E7) & 0.348 [0.318, 0.374] & 0.00 & 0.921 [0.843, 0.991] & 0.14\\
+Random circuit, 10 seeds & 0.361 & $-0.03$ & 0.946 & 0.12\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Paired fire-bootstrap differences, reservoir minus reference (negative = reservoir better):
+\begin{center}\small
+\begin{tabular}{@{}l c c@{}}
+\toprule
+\textbf{Reference} & \textbf{+24\,h} & \textbf{+72\,h}\\
+\midrule
+Persistence & $+0.011$ [$-0.004$, 0.025] & $\mathbf{-0.127}$ [$-0.186$, $-0.067$]\\
+Raw window ridge & $+0.012$ [0.010, 0.014] & $+0.023$ [0.017, 0.029]\\
+ESN, 20 units & $+0.010$ [0.006, 0.013] & $+0.008$ [$-0.002$, 0.018]\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+\item FBP is best at both leads. It uses the modelled spread rate \code{ros}; the reservoir inputs do not.
+\item The reservoir beats persistence only at +72\,h, and so does every ridge model. It trails the raw ridge at both
+  leads; the reservoir adds nothing over its own inputs (E7).
+\item Seeds (E4): reservoir $0.362\pm0.008$ / $0.950\pm0.016$, random circuit $0.361\pm0.007$ / $0.946\pm0.016$.
+  The chain circuit is no better than a random one.
+\item E2: at +24\,h the reservoir loses to persistence downwind, crosswind and upwind; at +72\,h it gains in all three.
+\item Decision (Pop, 5 Nov): report as is. No hybrid model, no second look at 2023.
+\end{itemize}
+
+% =====================================================================
 \section{Pitch and questions}
 
 \subsection{Five slides}
@@ -659,11 +713,11 @@ What is new this week; who built what? & Section 2 table + roles (Section 8)\\
 \midrule
 Perimeter archives are daily & \textbf{no} & perimeter-check.md, re-run (4 Nov)\\
 Hotspots are dated and cover ZF015 daily in 10--20 Aug & supported & re-run counts (4 Nov)\\
-Rebuilt outlines track the real edge & unknown & E10 vs official final perimeter\\
+Rebuilt outlines track the real edge & partly & E10: median IoU 0.65 / 0.83 buffered\\
 Hotspot weather represents the fire's weather & supported (modelled) & hotspot attribute sheet\\
-Chain needs no SWAPs on heavy-hex & supported & check transpiled CZ $=20$\\
-Reservoir matches ESN here & expected & PronoiaQ + project3; E1 decides\\
-Reservoir helps at 24\,h downwind & hypothesis & E1, E2 decide\\
+Chain needs no SWAPs on heavy-hex & \textbf{yes} & FakeFez transpile: CZ $=20$, depth 41\\
+Reservoir matches ESN here & \textbf{close, slightly worse} & E1: $+0.010$\,km at +24\,h (paired CI 0.006--0.013)\\
+Reservoir helps at 24\,h downwind & \textbf{no} & E1, E2: loses to persistence in every wind bin at +24\,h\\
 Hardware reproduces simulation & unknown & E6 decides\\
 Quantum advantage & \textbf{not claimed} & no source supports it\\
 \bottomrule
