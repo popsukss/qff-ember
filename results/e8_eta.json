@@ -1,0 +1,100 @@
+{
+  "town": "Yellowknife",
+  "town_lat": 62.454,
+  "town_lon": -114.3718,
+  "distance_km": 66.73011106612181,
+  "sector": 3,
+  "bearing_degrees": 146.90064858580993,
+  "fire_uid": 242981,
+  "fire_center_lat": 62.95955714285714,
+  "fire_center_lon": -115.09185714285715,
+  "distance_method": "Euclidean distance in the fire_coordinates local km frame",
+  "eta_method": "(distance_km - r_now) / clipped lead-1 advance; null if advance <= 0. Assumes constant radial advance; not an arrival forecast.",
+  "r_obs_definition": "Observed radius in the town sector on the origin date (not the lead-1 target date)",
+  "frozen_sha256": "a0e215ee828bcb1a5d918d1db2f220c86a8d9ce538fd655a265c022c7a03caba",
+  "frozen_qrc": {
+    "L": 5,
+    "gamma": 0.7853981633974483,
+    "input_map": [
+      "w_k",
+      "isi",
+      "dd_km",
+      "bui",
+      "rh"
+    ],
+    "lambdas": {
+      "1": 1e-06,
+      "3": 1e-06
+    },
+    "reservoir_seed": 7
+  },
+  "fit_protocol": "score_models: fit on train only; use frozen validation-selected QRC lambdas; predict test only",
+  "per_date": [
+    {
+      "date": "2023-08-10",
+      "r_obs": 15.124304190653325,
+      "eta_days_qrc": null,
+      "eta_days_fbp": null
+    },
+    {
+      "date": "2023-08-11",
+      "r_obs": 15.124304190653325,
+      "eta_days_qrc": null,
+      "eta_days_fbp": null
+    },
+    {
+      "date": "2023-08-12",
+      "r_obs": 15.124304190653325,
+      "eta_days_qrc": null,
+      "eta_days_fbp": 493.4258029182171
+    },
+    {
+      "date": "2023-08-13",
+      "r_obs": 23.07549416600835,
+      "eta_days_qrc": 192.86916221577874,
+      "eta_days_fbp": 37.916372735589334
+    },
+    {
+      "date": "2023-08-14",
+      "r_obs": 23.07549416600835,
+      "eta_days_qrc": 117.69745619384442,
+      "eta_days_fbp": 99.01027964069092
+    },
+    {
+      "date": "2023-08-15",
+      "r_obs": 24.31142760046538,
+      "eta_days_qrc": 85.49603125418224,
+      "eta_days_fbp": 150.18147479267546
+    },
+    {
+      "date": "2023-08-16",
+      "r_obs": 24.31142760046538,
+      "eta_days_qrc": 564.1169848178314,
+      "eta_days_fbp": 327.63095670180377
+    },
+    {
+      "date": "2023-08-17",
+      "r_obs": 24.31142760046538,
+      "eta_days_qrc": 81.08122450241316,
+      "eta_days_fbp": 338.9314272328922
+    },
+    {
+      "date": "2023-08-18",
+      "r_obs": 24.31142760046538,
+      "eta_days_qrc": 1355.223634146824,
+      "eta_days_fbp": 154.29296022655006
+    },
+    {
+      "date": "2023-08-19",
+      "r_obs": 24.31142760046538,
+      "eta_days_qrc": 183.04918566869745,
+      "eta_days_fbp": 353.17391329619767
+    },
+    {
+      "date": "2023-08-20",
+      "r_obs": 24.31142760046538,
+      "eta_days_qrc": 208.5690771557199,
+      "eta_days_fbp": 634.709534020331
+    }
+  ]
+}
