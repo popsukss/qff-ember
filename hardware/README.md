@@ -16,7 +16,7 @@ reports two-qubit survival and shot uncertainty, not QPU minutes or a guarantee
 that the job fits the Open Plan allowance.
 
 The intended run is ZF015 (uid 242981), 10–20 August 2023 inclusive: 11 days ×
-8 sectors, 88 circuits, 2000 shots each. Rebuild `hardware/zf015_case.npz` and the
+8 sectors, 88 circuits. The submitted job used 10,000 shots each (chosen from E5). Rebuild `hardware/zf015_case.npz` and the
 Z-only read-out with the local experiment script:
 
 ```sh
