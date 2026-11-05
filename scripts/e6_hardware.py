@@ -133,7 +133,9 @@ def main():
     custom_input = args.hw_features.resolve() != default_features.resolve()
     meta.update({"job_id": job["job_id"], "backend": job["backend"],
                  "shots": job["budget"]["shots"], "submitted_at": job["submitted_at"],
-                 "hw_features_path": str(args.hw_features.resolve()),
+                 "hw_features_path": (str(args.hw_features.resolve().relative_to(Path.cwd().resolve()))
+                                      if args.hw_features.resolve().is_relative_to(Path.cwd().resolve())
+                                      else args.hw_features.name),
                  "custom_hw_features": custom_input, "fake_fez_shots": 10000,
                  "fake_fez_seed": 0})
     reservoir = hardware.frozen_reservoir(ROOT / "results" / "frozen_config.json")

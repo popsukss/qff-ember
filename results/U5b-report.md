@@ -2138,7 +2138,7 @@ The only warnings were the existing Runtime SamplerV2 deprecation warnings.
 =============================== warnings summary ===============================
 tests/test_hardware.py::test_local_sampler_path_matches_exact_without_noise
 tests/test_hardware.py::test_fake_backend_noise_changes_features_but_not_wildly
-  /Users/popsuksumetchoengprachya/Projects/qff-ember/ember/hardware.py:86: DeprecationWarning: The SamplerV2 class is deprecated as of qiskit-ibm-runtime 0.50.0 and will be removed no sooner than 3 months after the release date. `qiskit_ibm_runtime.executor_sampler.Sampler` provides a new Sampler implementation that runs all the pre- and post-processing in the client side. The top-level `qiskit_ibm_runtime.Sampler` import will be updated to point to the client-side sampler in an upcoming release, with the legacy Sampler being available until the deprecation is completed.
+  ember/hardware.py:86: DeprecationWarning: The SamplerV2 class is deprecated as of qiskit-ibm-runtime 0.50.0 and will be removed no sooner than 3 months after the release date. `qiskit_ibm_runtime.executor_sampler.Sampler` provides a new Sampler implementation that runs all the pre- and post-processing in the client side. The top-level `qiskit_ibm_runtime.Sampler` import will be updated to point to the client-side sampler in an upcoming release, with the legacy Sampler being available until the deprecation is completed.
     sampler = SamplerV2(mode=backend, options={"simulator": {"seed_simulator": seed}})
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html

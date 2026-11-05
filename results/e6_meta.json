@@ -24,9 +24,9 @@
   "backend": "ibm_fez",
   "shots": 10000,
   "submitted_at": "2026-11-05T05:06:33.542460+00:00",
-  "hw_features_path": "/Users/popsuksumetchoengprachya/Projects/qff-ember/hardware/e6_hw_features.npy",
+  "hw_features_path": "hardware/e6_hw_features.npy",
   "custom_hw_features": false,
   "fake_fez_shots": 10000,
   "fake_fez_seed": 0,
-  "runtime_seconds": 7.462851708056405
+  "runtime_seconds": 6.924008250003681
 }
