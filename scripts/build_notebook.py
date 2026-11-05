@@ -314,7 +314,7 @@ def build_notebook():
         ### Reproduce
 
         To rebuild the full experiment, provide the source data described in the
-        project plan, then run these scripts in order from the repository root:
+        README (Data section), then run these scripts in order from the repository root:
 
         1. `scripts/build_sectors.py`
         2. `scripts/run_experiments.py`
