@@ -1,11 +1,11 @@
-% Ember -- full build plan for Qiskit Fall Fest Waterloo 2026 (team of 5, present Fri 6 Nov 2026).
+% Ember -- full build plan, FIRE-SPREAD version (Qiskit Fall Fest Waterloo 2026, team of 5, present Fri 6 Nov 2026).
+% Replaces the FWI-forecasting plan (kept as ember-plan-fwi.tex = fallback if the perimeter check returns verdict C).
 % Style follows project3_QRC_forecasting.pdf: every load-bearing claim carries a provenance tag.
-% Sources: CWFIS fwi_obs directory + readme + CSV header (fetched 2026-11-04); cwfis_allstn2025.csv station list;
-%   PronoiaQ code (~/Projects/Quantathon2026-QRC_detection: proof_of_concept/QRC_theoretical.py,
-%   QRC_QPU_implementation.py, QRC_horizon_forecast/) and CONCLUSION.md; project3_QRC_forecasting.pdf (stress test);
-%   hackathon notes pack (qff-hackathon-notes.tex, chapters 2, 3, 7, 8).
-% Single-pass safe: no \ref, no \tableofcontents. Contents page links to hyperref's own anchors (section.N),
-%   which resolve in one pass. Deliver .tex only; do not compile here.
+% Sources: CWFIS fwi_obs files + station extract (4 Nov 2026); CWFIS hotspots/archive listing (perimeters 2018--2023);
+%   PronoiaQ code (~/Projects/Quantathon2026-QRC_detection); github.com/Luke-Fu101/QRC_Broadcast_Burns (read 4 Nov 2026);
+%   hackathon notes pack (chapters 2, 3, 7, 8); docs/perimeter-check.md (verdict B, re-checked 4 Nov 2026).
+% Single-pass safe: no \ref, no \tableofcontents. Contents page links to hyperref's own anchors (section.N).
+%   Deliver .tex only; do not compile here.
 
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=2.2cm,headheight=14pt]{geometry}
@@ -38,7 +38,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small\nouppercase{\leftmark}}
-\fancyhead[R]{\small Ember -- build plan}
+\fancyhead[R]{\small Ember -- build plan (fire spread)}
 \fancyfoot[C]{\small\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\sectionmark}[1]{\markboth{\thesection\quad #1}{}}
@@ -49,6 +49,7 @@
 \newtcolorbox{watch}{pb,colback=red!4,colframe=red!65!black,title={Watch out}}
 \newtcolorbox{decision}{pb,colback=Goldenrod!10,colframe=Goldenrod!70!black,title={Design decision}}
 \newtcolorbox{teamrule}{pb,colback=ForestGreen!5,colframe=ForestGreen!70!black,title={Team rule}}
+\newtcolorbox{gate}{pb,colback=Orange!6,colframe=Orange!80!black,title={Go / no-go gate (Wed night)}}
 
 % ---- provenance tags (short) ----
 \newcommand{\tagbox}[2]{{\footnotesize\color{#1}\textsf{[#2]}}}
@@ -65,23 +66,40 @@
 % ================= page 1 =================
 \begin{center}
 {\LARGE\bfseries Ember}\par\smallskip
-{\Large Quantum reservoir forecasting of extreme fire-weather days}\par\medskip
+{\Large Quantum reservoir forecasting of wildfire spread}\par\medskip
 {\normalsize Full build plan \quad$\cdot$\quad Qiskit Fall Fest Waterloo 2026}\par
 {\small Team of 5 \quad$\cdot$\quad build Wed 4 -- Thu 5 Nov \quad$\cdot$\quad present Fri 6 Nov, Davis Centre}\par
 \end{center}
 
 \begin{glance}
 \begin{tabularx}{\linewidth}{@{}l Y@{}}
-\textbf{Goal} & Forecast fire weather (FWI) 1, 3, 7, 14 days ahead at one station; warn on extreme days.\\
-\textbf{Data} & CWFIS daily station codes, 2000--2026; main station Yellowknife A (NT).\\
+\textbf{Goal} & From day 3 of an active fire, predict how far the fire edge moves in each of 8 compass sectors over the
+next 24\,h and 72\,h. Turn that into a predicted outline and a time-to-reach for nearby towns.\\
+\textbf{Data} & CWFIS satellite hotspots 2018--2023. Daily fire outlines are \textbf{rebuilt} from the hotspots;
+each hotspot also carries its local weather and fire-danger codes.\\
 \textbf{Model} & Fixed 5-qubit Qiskit circuit (reservoir) $\to$ measured features $\to$ ridge read-out. Only the
-read-out is trained.\\
-\textbf{Compare} & Persistence, climatology, AR, same-size classical reservoir (ESN), random-circuit control.\\
-\textbf{Hardware} & One batched IBM job: 2023 season, 144 circuits $\times$ 2000 shots.\\
-\textbf{Claim} & Parity with classical, possible edge in short-lead recall. \textbf{No quantum advantage.}\\
+read-out is trained (42 numbers).\\
+\textbf{Compare} & Persistence, physics spread rate (FBP), ridge on raw window, same-size classical reservoir (ESN),
+random circuit.\\
+\textbf{Hardware} & One batched IBM job: fire ZF015 (Yellowknife), 10--20 Aug 2023, 11 days $\times$ 8 sectors = 88
+circuits.\\
+\textbf{Claim} & Parity with classical, possible edge at +24\,h. \textbf{No quantum advantage.}\\
 \textbf{Credit} & Extends PronoiaQ's reservoir (Quantathon 2026, 2nd place + Best Team).\\
 \end{tabularx}
 \end{glance}
+
+\begin{gate}
+\textbf{Result: verdict B.} \veri{docs/perimeter-check.md; key numbers re-run independently}
+\begin{itemize}
+\item The perimeter archives hold \textbf{one final outline per fire per season} (2023: 1{,}144 outlines, 1 date
+  each). No daily history. Fires with $\ge10$ dated outlines: 0 in every year.
+\item The hotspot archive \textbf{is} dated: every detection has a UTC timestamp. Fire ZF015 (Yellowknife) has hotspots
+  on 70 of 77 days, all 11 days of 10--20 Aug.
+\item $\Rightarrow$ R1 rebuilds daily outlines from hotspots (Section 3). Target = reconstructed advance, not an
+  independently observed edge. Say so on the slide.
+\item If reconstruction fails by Thu 09:00: switch to \code{ember-plan-fwi.tex}. It is ready to run.
+\end{itemize}
+\end{gate}
 
 \subsection*{Contents}
 \tocsec{1}{Problem and value}
@@ -95,6 +113,7 @@ read-out is trained.\\
 \tocsec{9}{Expected outcomes}
 \tocsec{10}{Pitch and questions}
 \tocsec{11}{Soundness audit}
+\par\noindent\hyperlink{refs}{\textbf{--}\quad References}\par
 
 \subsection*{How to read the tags}
 \begin{center}\small
@@ -112,17 +131,23 @@ read-out is trained.\\
 \section{Problem and value}
 
 \begin{itemize}
-\item 2023 season: $\approx17.2$\,M ha burned. 2025: $\approx8.9$\,M ha. \supp{CWFIS; notes ch.~1}
+\item 2023 season: $\approx17.2$\,M ha burned. \supp{CWFIS; notes ch.~1}
 \item Aug 2023: all of Yellowknife evacuated ahead of a fire. \caut{cite a primary source on the slide}
-\item Remote and fly-in towns need \textbf{days} of warning: planes, crews, destinations. \ours
-\item Miss = late evacuation. False alarm = idle crews. $\Rightarrow$ \textbf{recall first}. \ours
+\item Once a fire is burning, the question is \textbf{where it goes next}: which side grows, how fast, and which town
+  it reaches first.
+\item Evacuations are planned in 24--72\,h steps: planes, roads, crews. \caut{general practice; find a source}
+\item Under-predicting spread = late evacuation. $\Rightarrow$ report errors on the fast-growing side separately. \ours
 \end{itemize}
 
 \textbf{Question we answer:}
 \begin{enumerate}
-\item Given the last $L$ days at one station, will FWI be extreme $h$ days from now?
-\item How far ahead is that answerable at all?
+\item Given the last 5 days of a fire's growth and local weather, how far will its edge move in each compass
+  sector in the next 24\,h and 72\,h?
+\item Does a fixed quantum reservoir extract that signal as well as a classical model of the same size?
 \end{enumerate}
+
+\textbf{Not in scope:} where fires start (ignition), fine-grained spread maps (operational fire-spread models already do
+this from fuel maps), and evacuation routing.
 
 % =====================================================================
 \section{What is reused, what is new}
@@ -135,8 +160,11 @@ read-out is trained.\\
 Windowed restart reservoir (encode, entangle, frozen rotations) & reused & \code{QRC\_theoretical.py}\\
 Qiskit twin, endianness fix, Aer noise path & reused & \code{QRC\_QPU\_implementation.py}\\
 One ridge read-out per lead time & reused & \code{QRC\_horizon\_forecast/}\\
-Canadian CWFIS data and labels & \textbf{new} & --\\
-Multi-timescale input (one moisture code per qubit) & \textbf{new} & --\\
+CWFIS station extract (fallback weather, FWI plan) & reused & \code{scripts/extract\_stations.sh}\\
+Perimeter / hotspot check & reused & \code{scripts/check\_perimeters.py}\\
+Daily outlines rebuilt from hotspots; 8-sector edge geometry & \textbf{new} & --\\
+Wind-along-sector input & \textbf{new} & --\\
+Predicted outline + time-to-reach for towns & \textbf{new} & --\\
 Chain entangler (no SWAPs on IBM chips) & \textbf{new} & --\\
 Real IBM hardware run & \textbf{new} & PronoiaQ never ran it\\
 \bottomrule
@@ -147,129 +175,169 @@ Real IBM hardware run & \textbf{new} & PronoiaQ never ran it\\
 PronoiaQ was a team of four. Say ``extends PronoiaQ's reservoir''. Do not present the engine as this week's work.
 \end{watch}
 
+\textbf{Related work to name on the slide.} \code{QRC\_Broadcast\_Burns} (GitHub, Aug 2026) tests a reservoir for
+prescribed-burn weather windows, but only on the Lorenz-63 toy system, simulated exactly, with no fire data.
+\veri{repo read 4 Nov} Ember uses real fire perimeters, a physical target in km, and a hardware run. \ours
+
 % =====================================================================
 \section{Data}
 
-\subsection{Source}
+\subsection{Hotspots (the main data)}
 \begin{itemize}
-\item Archive: \url{https://cwfis.cfs.nrcan.gc.ca/downloads/fwi_obs/} \veri{directory listing}
-\item Files (one per decade):
-  \begin{itemize}
-  \item \code{cwfis\_fwi2000sv3.0\_ll.csv.bz2} (50\,MB)
-  \item \code{cwfis\_fwi2010sv3.0\_ll.csv.bz2} (88\,MB)
-  \item \code{cwfis\_fwi2020sv3.0\_ll.csv.bz2} (101\,MB, updated 5 Oct 2026)
-  \end{itemize}
-\item One row per station per day (12:00). \veri{CSV header}
-\item Columns used: \code{rep\_date, aes, name, lat, lon, ffmc, dmc, dc, fwi, calcstatus}.
-\item Missing value = empty field, negative \code{calcstatus}. \veri{sample rows}
-\item Provincial stations are not in these files. \veri{readme.txt}
+\item Archive: \url{https://cwfis.cfs.nrcan.gc.ca/downloads/hotspots/archive/}, \code{<YEAR>\_hotspots.zip}
+  (2012--2023, all HTTP 200). 2023: one CSV, 3{,}674{,}409 rows, 35 columns, 748\,MB unzipped. \veri{perimeter-check.md}
+\item 2018--2022 zips not yet downloaded: $\approx360$\,MB in total. \todo{R1: download into
+  \code{data/raw/cwfis\_perimeters/}}
+\item Each row = one satellite detection (MODIS or VIIRS). \code{rep\_date} = UTC time. \code{lat, lon} in degrees.
+  \veri{CSV}
+\item Each row also carries local-noon weather and codes: \code{ws} (km/h), \code{wd}, \code{rh}, \code{isi},
+  \code{bui}, plus modelled \code{ros} (spread rate, m/min) and \code{fuel} type.
+  \supp{NRCan hotspot attribute sheet}
 \item Slides must credit: Canadian Forest Service, CWFIS. \supp{CWFIS metadata}
 \end{itemize}
 
-\subsection{Stations}
-\begin{center}\small
-\begin{tabularx}{\linewidth}{@{}l l l Y@{}}
-\toprule
-\textbf{Role} & \textbf{Name in file} & \textbf{aes} & \textbf{Why}\\
-\midrule
-Main & \code{YELLOWKNIFE+A} (NT) & 2204100 & 2023 city evacuation\\
-Test 2 & \code{KELOWNA} (BC) & 1123939 & 2023 McDougall Creek fire\\
-Test 3 & \code{JASPER+WARDEN} (AB) & 3053536 & 2024 Jasper fire\\
-\bottomrule
-\end{tabularx}
-\end{center}
-\veri{cwfis\_allstn2025.csv}
-
-\textbf{Coverage, 1 May -- 30 Sep} \veri{extracted from the three decade files, 24{,}747 rows}
-\begin{center}\small
-\begin{tabularx}{\linewidth}{@{}l l l l l Y@{}}
-\toprule
-\textbf{Station} & \textbf{Years} & \textbf{$\ge$90\% full} & \textbf{Train $q_{95}$} & \textbf{Test extremes} & \textbf{2023 peak FWI}\\
-\midrule
-Yellowknife A & 2000--2026 (27) & 14 & 35.2 & 64 of 712 & 56.2 on 13 Aug\\
-Kelowna & 2009--2026 (15) & 14 & 59.3 & 47 of 763 & 103.0 on 18 Aug\\
-Jasper Warden & 2000--2026 (27) & 11 & 33.7 & 28 of 750 & 38.6 on 4 Jun\\
-\bottomrule
-\end{tabularx}
-\end{center}
+\subsection{Final perimeters (grouping only)}
 \begin{itemize}
-\item Yellowknife: most gaps are small (seasons 80--90\% full) $\Rightarrow$ the gap rule handles them.
-\item Kelowna starts 2009 $\Rightarrow$ only 9 training seasons (2009--2017).
-\item Jasper: 2019 is almost empty (8\%), 2000--2003 patchy $\Rightarrow$ weakest station.
-\item Test seasons are hotter: Yellowknife has 64 test days above the training $q_{95}$ (9\%, not 5\%).
-  \caut{non-stationary climate; recalibrating the threshold is a design choice, say which one you used}
-\item Yellowknife 2023 peak FWI was 13 Aug, three days before the evacuation order. \caut{check the evacuation date
-  against a primary source}
+\item \code{<YEAR>\_perimeters.zip}, 2018--2023: one polygon per fire for the whole season, fields
+  \code{uid, hcount, firstdate, lastdate, area} (+\code{consis\_id} in 2023). \veri{all six files}
+\item \code{firstdate}/\code{lastdate} = first and last contributing hotspot. They are \textbf{not} perimeter dates.
+\item Use: assign each hotspot to a fire (point inside the final polygon). Nothing else.
+\item ZF015-23 (Yellowknife) = \code{uid} 242981: 29 Jun -- 13 Sep, 1{,}781\,km$^2$ (geometry), final outline
+  24.9\,km from the town. \veri{re-run}
 \end{itemize}
 
-\subsection{Season, splits, labels}
+\begin{watch}
+Grouping by the final polygon uses the end-of-season footprint, so it knows which hotspots belong together. It never
+uses their timing: the outline on day $t$ is built only from detections up to day $t$. State this rule on the
+method slide.
+\end{watch}
+
+\subsection{Rebuilding the daily outline}
+For fire $f$, let $H_f(t)$ = all its hotspots detected up to the end of UTC day $t$.
+\begin{enumerate}
+\item Drop isolated detections: points with no other detection of $f$ within 2\,km. \ours
+\item Centre $c$ = mean position of the first day's hotspots (ignition area). Fixed for the life of the fire. \ours
+\item Wedge $k$ = bearings $45^\circ k\pm22.5^\circ$ from $c$.
+\end{enumerate}
+\[
+r_k(t)=\max_{p\,\in\,H_f(t),\ p\,\in\,\text{wedge }k}\ \lVert p-c\rVert\ \ \text{(km)},
+\qquad
+\Delta d_k(t)=r_k(t)-r_k(t-1)\ \ge 0
+\]
+Because $H_f(t)$ only grows, $r_k$ never shrinks (burned ground stays burned). The 8 points $r_k$ joined around $c$
+form the outline used for the map and for IoU. \ours
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+\textbf{Limitation} & \textbf{Effect / what we do}\\
+\midrule
+Cloud, smoke, satellite gaps & days with no detection $\Rightarrow$ $\Delta d=0$ that day, jump later. Keep a
+missing-day mask; E9 tests this.\\
+Pixel size 375\,m (VIIRS) -- 1\,km (MODIS) & edge error $\sim$0.5\,km. Report MAE in km next to this.\\
+Inputs and targets from the same hotspots & skill is against reconstructed edges, not ground truth. Say so.\\
+Fires merging & two uids touching $\Rightarrow$ drop both after the merge day. \ours\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Weather at the fire}
+\begin{itemize}
+\item Use the hotspot rows themselves: on day $t$, the \textbf{median} \code{ws, wd, rh, isi, bui} over that day's
+  hotspots of fire $f$. No station distance problem. \ours
+\item No hotspot that day $\Rightarrow$ carry the last value, flag the day.
+  \caut{weather missing on 23 of 3.67\,M rows; rows with RH $=0$ are placeholders, drop them}
+\item Fallback: nearest federal station from \code{fwi\_obs/} (already downloaded). \veri{station extract}
+\item \code{wd} = direction the wind blows \emph{from}, in degrees. \supp{standard meteorological convention}
+\end{itemize}
+
+\subsection{Wind along each sector}
+Sector $k$ points at bearing $\varphi_k=45^\circ k$ (N, NE, \dots, NW). Wind component pushing toward sector $k$:
+\[
+w_k(t)=\mathrm{ws}(t)\,\cos\!\big(\varphi_k-(\mathrm{wd}(t)+180^\circ)\big)
+\]
+Positive = wind blows the fire toward that sector.
+
+\begin{decision}
+\textbf{8 sectors, not a pixel map.} Hotspot outlines are coarse (0.4--1\,km pixels, daily), and fuel-map spread
+models already produce pixel maps. Eight numbers per fire-day keep the target simple, give $8\times$ the samples, and fit
+a 5-qubit read-out. Fix the centre on day 1 so $r_k$ measures real growth, not a moving origin. \ours
+\end{decision}
+
+\subsection{Samples, splits, targets}
 \begin{center}\small
 \begin{tabularx}{\linewidth}{@{}l Y@{}}
 \toprule
 \textbf{Item} & \textbf{Rule}\\
 \midrule
-Season & 1 May -- 30 Sep (153 days). Windows never cross winter. \ours\\
-Train & 2000--2017 (18 seasons; Yellowknife 2{,}473 valid days)\\
-Validation & 2018--2021 (4 seasons; 545 days, 14 extreme)\\
-Test & 2022--2026 (5 seasons, includes 2023; 712 days). 2026 is in the file. \veri{extract}\\
-Split rule & By year. Never shuffle days. \supp{notes ch.~3}\\
-Target & $y_{t+h}=\mathrm{FWI}_{t+h}$, \ $h\in\{1,3,7,14\}$\\
-Extreme day & $\mathrm{FWI}\ge q_{95}$ of training-season days, per station, frozen before validation. \supp{notes ch.~1}\\
-Scaling & Min--max on training years, clip to $[0,1]$. \ours\\
-Gaps & Fill $\le2$ days forward; drop windows touching longer gaps. \ours\\
+Sample & one fire $\times$ day $t$ $\times$ sector $k$ \ours\\
+Fires kept & $\ge10$ hotspot days and final area $\ge10$\,km$^2$; no merge with another uid \ours\\
+Window & days $t-4,\dots,t$ ($L=5$), oldest first \ours\\
+Before day 1 & $\Delta d_k=0$ (fire did not exist), weather as observed. Forecasts start on day 3. \ours\\
+Targets & cumulative advance $y^{(1)}=r_k(t+1)-r_k(t)$ and $y^{(3)}=r_k(t+3)-r_k(t)$, in km \ours\\
+Train & fires that started in 2018--2021\\
+Validation & 2022\\
+Test & 2023 (includes the Yellowknife-area fire)\\
+Split rule & By year, so one fire never sits in two splits. Never shuffle fire-days. \supp{notes ch.~3}\\
+Scaling & Min--max on training rows, clip to $[0,1]$. \ours\\
+Gaps & Day without hotspots: $\Delta d_k=0$, weather carried, mask set. Drop windows with $>2$ masked days. \ours\\
 \bottomrule
 \end{tabularx}
 \end{center}
 
 \begin{watch}
-5\% base rate $\Rightarrow$ only $\approx38$ extreme days per station in test. Always print the event count and a
-season-block bootstrap interval next to recall and $F_1$.
+\begin{itemize}
+\item The 8 sectors of one fire-day are not independent, and neither are consecutive days of one fire.
+  Bootstrap \textbf{by fire}, not by row, for every error bar.
+\item 2023 was an extreme year. Test errors may be larger than validation errors. Report both; do not retune on test.
+\item Number of usable fires per year is not yet counted (needs 2018--2022 hotspots). \todo{R1: count; if thin,
+  train on 2018--2022 and validate on a held-out set of 2022 fires}
+\end{itemize}
 \end{watch}
-
-\subsection{Why the FWI codes suit a reservoir}
-\begin{center}\small
-\begin{tabular}{@{}lll@{}}
-\toprule
-\textbf{Code} & \textbf{Tracks} & \textbf{Memory (time-lag)}\\
-\midrule
-FFMC & fine surface fuel & $\approx\tfrac23$ day\\
-DMC & loose duff layer & $\approx12$ days\\
-DC & deep drought & $\approx52$ days\\
-\bottomrule
-\end{tabular}
-\end{center}
-\caut{Van Wagner 1987 values; cite before using on a slide}
-
-A 10-day FWI window cannot see a 52-day drought. DC on its own qubit can. \ours
 
 % =====================================================================
 \section{Method}
 
-\subsection{Circuit (one per day $t$, restarted each day)}
-Feed the window $\mathbf u_{t-L+1},\dots,\mathbf u_t$, oldest first. Each step $k$ applies:
+\subsection{Circuit (one per sample, restarted each time)}
+Feed the window $\mathbf u_{t-4},\dots,\mathbf u_t$, oldest first. Each step $j$ applies:
 \[
-\underbrace{\bigotimes_i R_Y\!\big(\gamma\, g_i\, u_{k,c(i)}\big)}_{\text{encode}}
+\underbrace{\bigotimes_i R_Y\!\big(\gamma\, g_i\, u_{j,i}\big)}_{\text{encode}}
 \;\longrightarrow\;
 \underbrace{\prod_{i=0}^{n-2} \mathrm{CZ}_{i,i+1}}_{\text{chain entangler}}
 \;\longrightarrow\;
 \underbrace{\bigotimes_i R_Z(b_i)\,R_Y(a_i)}_{\text{frozen random}}
 \]
+The encoding rotation adds to the state left by earlier days; it does not overwrite it. After day $t$ the state holds
+the whole window, recent days strongest. Measuring ends the run; the next sample starts again from $|00000\rangle$.
 
 \begin{center}\small
 \begin{tabularx}{\linewidth}{@{}l l Y@{}}
 \toprule
 \textbf{Symbol} & \textbf{Value} & \textbf{Meaning}\\
 \midrule
-$n$ & 5 & qubits \supp{PronoiaQ}\\
-$L$ & 10 & window in days; sweep 5, 10, 15 \ours\\
+$n$ & 5 & qubits, one per input \supp{PronoiaQ}\\
+$L$ & 5 & window in days; sweep 3, 5, 7 \ours\\
 $\gamma$ & $\pi/2$ & encoding gain; sweep $\pi/4,\pi/2,\pi$ \supp{PronoiaQ}\\
 $g_i,a_i,b_i$ & random, seed 7 & frozen, never trained \supp{PronoiaQ}\\
-$c(i)$ & see below & which input goes on qubit $i$ \ours\\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-Input per qubit: \quad q0, q1 $\to$ FWI \quad q2 $\to$ FFMC \quad q3 $\to$ DMC \quad q4 $\to$ DC.
+\subsection{Input on each qubit}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l l Y@{}}
+\toprule
+\textbf{Qubit} & \textbf{Input} & \textbf{Why here}\\
+\midrule
+q0 & wind along sector $w_k$ & fastest driver; pushes the head of the fire\\
+q1 & ISI (initial spread index) & wind $\times$ fine-fuel dryness; next to wind \supp{Van Wagner 1987}\\
+q2 & recent advance $\Delta d_k$ & the fire's own state; middle of the chain couples to all drivers\\
+q3 & BUI (buildup index) & fuel available to burn; changes over weeks \supp{Van Wagner 1987}\\
+q4 & RH (relative humidity) & drying power of the air; never missing\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\ours\ Sweep one alternative map in E3 (q0 $w_k$, q1 $\Delta d_k$, q2 ISI) so the order is chosen, not assumed.
 
 \begin{decision}
 \textbf{Chain, not ring.} PronoiaQ entangles a 5-qubit ring. IBM heavy-hex chips have no 5-cycles, so a ring
@@ -298,29 +366,42 @@ Qiskit count keys are little-endian (qubit 0 = rightmost bit). Reverse exactly o
 \code{counts\_to\_features}. Nowhere else.
 \end{watch}
 
-\subsection{Read-out}
+\subsection{Read-out (the only trained part)}
 \[
-w_h^\star=(X^\top X+\lambda I)^{-1}X^\top y_h,
+w_h^\star=(X^\top X+\lambda I)^{-1}X^\top y^{(h)},
 \qquad
-\hat y_{t+h}=w_h^{\star\top}\,\tilde x_t
+\hat y^{(h)}=w_h^{\star\top}\,x,
+\qquad h\in\{1,3\}
 \]
 \begin{itemize}
-\item One ridge per lead $h$. \supp{PronoiaQ}
+\item One ridge per lead: $2\times21=42$ trained numbers in total.
 \item $\lambda$ from validation, grid $10^{-6}$ to $10^{2}$.
-\item 21 parameters vs $\approx2{,}750$ training rows.
+\item No gradients through the circuit $\Rightarrow$ no barren plateaus, training takes seconds. \supp{notes ch.~3}
 \end{itemize}
 
-\subsection{Detect}
-Alarm at lead $h$ if $\hat y_{t+h}\ge\tau_h$. Two thresholds, both chosen on validation: \ours
-\begin{itemize}
-\item $\tau_h^{F_1}$: maximises $F_1$.
-\item $\tau_h^{R}$: smallest with recall $\ge0.8$ (recall-first).
-\end{itemize}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l l Y@{}}
+\toprule
+\textbf{Part} & \textbf{Trained?} & \textbf{How it is set}\\
+\midrule
+Fire tracks, sectors, weather join & no & geometry and table joins\\
+Scaling to $[0,1]$ & fitted & min/max of training rows only\\
+Reservoir gates & \textbf{never} & random, seed 7, frozen\\
+$\gamma$, $L$, input map, $\lambda$ & tuned & on 2022 validation, then frozen\\
+\textbf{Ridge weights} $w_1,w_3$ & \textbf{yes} & least squares on 2018--2021\\
+Outline and time-to-reach & no & arithmetic on predictions\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{From predictions to a map and a time-to-reach}
 \[
-\text{precision}=\frac{TP}{TP+FP},\qquad
-\text{recall}=\frac{TP}{TP+FN},\qquad
-F_1=\frac{2TP}{2TP+FP+FN}
+\hat r_k(t+h)=r_k(t)+\hat y_k^{(h)},
+\qquad
+\widehat{\mathrm{ETA}}_{\text{town}}\approx\frac{D-r_k(t)}{\hat y_k^{(1)}}\ \text{days}
 \]
+Join the 8 predicted points into the predicted outline. $D$ = distance from the centroid to the town, $k$ = the sector
+the town lies in. Show the time-to-reach only when $\hat y_k^{(1)}>0$. \ours
 
 % =====================================================================
 \section{Baselines and controls}
@@ -334,28 +415,42 @@ Build and score the baselines \textbf{before} the quantum reservoir.
 \toprule
 \textbf{Model} & \textbf{Definition} & \textbf{Why it is here}\\
 \midrule
-Climatology & mean FWI for that calendar day, training years & reference for skill\\
-Persistence & $\hat y_{t+h}=y_t$ & strong on slow series; tied PronoiaQ on $F_1$ \supp{CONCLUSION.md}\\
-AR($p$) & linear in last $p\le L$ days, same inputs & linear floor\\
-ESN & 20-node tanh reservoir, same inputs, same ridge & same read-out size \supp{notes ch.~8}\\
-Random circuit & same circuit, Haar-random entangler, 10 seeds & tuned dynamics vs just ``quantum'' \supp{notes ch.~8}\\
-Raw window & ridge on the raw $L$-day inputs & does the reservoir add anything? \ours\\
+Persistence & $\hat y^{(h)}=h\,\Delta d_k(t)$ (keep today's speed) & the bar to beat\\
+Mean advance & mean of $y^{(h)}$ in training rows & reference for skill\\
+Physics (FBP) & $\hat y^{(h)}_k=h\cdot\mathrm{ros}\cdot T_b\cdot\max(0,\cos\theta_k)$; \ $\mathrm{ros}$ = median modelled
+spread rate of that day's hotspots, $\theta_k$ = angle between sector and downwind, $T_b$ = burning minutes per day,
+fitted on training & what the operational model says \supp{hotspot \code{ros} field} \caut{crude: head-fire rate only}\\
+Raw window & ridge on the raw 5-day inputs (25 numbers) & does the reservoir add anything? \ours\\
+ESN & tanh reservoir, 5 and 20 units, \textbf{fully connected}, same ridge & same read-out size \supp{notes ch.~8}\\
+Random circuit & same circuit, Haar-random entangler, 10 seeds & tuned dynamics vs just ``quantum''
+\supp{notes ch.~8}\\
+Reset reservoir & Fujii--Nakajima style: reset input qubits each day, hidden qubits keep memory (simulation only) &
+the other standard reservoir design \supp{Fujii--Nakajima 2017}\\
 \bottomrule
 \end{tabularx}
 \end{center}
 
+\begin{watch}
+\code{reservoirpy} sets connectivity to 0.1 by default. With 5 units most units then have no inputs, and the ESN loses
+for a silly reason. Set input and recurrent connectivity to 1.0. \supp{QRC\_Broadcast\_Burns README}
+\end{watch}
+
 Scores per lead $h$:
 \[
-\mathrm{NMSE}_h=\frac{\sum_t(y_{t+h}-\hat y_{t+h})^2}{\sum_t(y_{t+h}-\bar y)^2},
+\mathrm{MAE}_h=\frac1N\sum\big|y^{(h)}-\hat y^{(h)}\big|\ \text{(km)},
 \qquad
-\mathrm{SS}_h=1-\frac{\mathrm{MSE}_h^{\text{model}}}{\mathrm{MSE}_h^{\text{clim}}}
+\mathrm{SS}_h=1-\frac{\mathrm{MAE}_h^{\text{model}}}{\mathrm{MAE}_h^{\text{persist}}},
+\qquad
+\mathrm{IoU}=\frac{|\hat P\cap P|}{|\hat P\cup P|}
 \]
-$\mathrm{SS}_h\le0$ means no better than climatology.
+$\mathrm{SS}_h\le0$ means no better than persistence. $P,\hat P$ = observed and predicted outlines. Also report
+$\mathrm{MAE}$ on the fastest-growing quarter of rows (where under-prediction is dangerous). \ours
 
 \begin{watch}
-\textbf{Weather forecasts beat us.} Fire centres feed weather-model forecasts into FWI; CWFIS publishes them (NAEFS,
-SCRIBE). \veri{READMEs in fwi\_obs/} Station history alone will not beat that at 3--7 days.
-Position Ember as ``what station history alone can tell you''. Rehearse this answer.
+\textbf{Operational spread models know more than we do.} Canadian fire centres run the Fire Behaviour Prediction
+system and spread simulators with fuel maps and weather forecasts. Ember has no fuel map and no forecast. The FBP
+baseline row shows where we stand against the physics. Position Ember as ``a data-driven check from satellite
+detections only''. Rehearse this answer.
 \end{watch}
 
 % =====================================================================
@@ -366,14 +461,17 @@ Position Ember as ``what station history alone can tell you''. Rehearse this ans
 \toprule
 \textbf{ID} & \textbf{Run} & \textbf{Output} & \textbf{Owner}\\
 \midrule
-E1 & All models, exact features, Yellowknife, all leads & main table: NMSE, SS, P / R / $F_1$ & R3\\
-E2 & Skill vs lead, every model & ``how far ahead'' curve & R5\\
-E3 & Sweep $L$, $\gamma$, input map (FWI only vs multi-timescale) & frozen config & R2\\
-E4 & Random-circuit control, 10 seeds & mean $\pm$ sd vs tuned & R2\\
-E5 & Shots $10^2,10^3,2{\times}10^3,10^4$ on Aer, with and without noise & NMSE-vs-shots curve & R4\\
-E6 & Hardware, 2023 season, Z basis, 2000 shots & hardware vs noisy sim vs exact & R4\\
-E7 & Kelowna, Jasper, frozen config & generalisation rows & R1\\
-E8 & Yellowknife 2023 case study & FWI, 7-day forecast, alarms, evacuation date & R5\\
+E1 & All models, exact features, test 2023, both leads & main table: MAE, SS, IoU, fast-quarter MAE & R3\\
+E2 & Error by sector relative to wind (downwind vs upwind) & ``where it works'' plot & R5\\
+E3 & Sweep $L$, $\gamma$, input map on validation & frozen config & R2\\
+E4 & Random-circuit control, 10 seeds; seed spread of our reservoir, 5 seeds & mean $\pm$ sd & R2\\
+E5 & Shots $10^2,10^3,2{\times}10^3,10^4$ on Aer, with and without noise & MAE-vs-shots curve & R4\\
+E6 & Hardware, ZF015 10--20 Aug, 88 circuits, Z basis, 2000 shots & hardware vs noisy sim vs exact & R4\\
+E7 & Ridge with and without the raw inputs added to the features & is the gain from the reservoir? & R3\\
+E8 & ZF015 case study, 10--20 Aug 2023 & map: rebuilt vs predicted outline, time-to-reach town & R5\\
+E9 & Sparse data: drop 15/30/45\% of hotspot days, carry last value & robustness curve, reservoir vs ESN & R1\\
+E10 & Reconstruction check: rebuilt final outline vs official final perimeter, every 2023 fire & IoU; is the rebuild
+sane? & R1\\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -392,23 +490,26 @@ Pick the configuration in E3 on validation only. Freeze it. Then compute test nu
 \textbf{Item} & \textbf{Value}\\
 \midrule
 Plan limit & 10 min QPU per 28 days per account; job or batch mode, no \code{Session} \veri{IBM plans page; error 1352}\\
-Circuits & $153-(L-1)=144$ (2023 season, Z basis)\\
-Shots & 2000 each $\Rightarrow288{,}000$ total\\
+Circuits & ZF015, 10--20 Aug 2023: $11\times8=88$ (Z basis). Hotspots on all 11 days. \veri{re-run}\\
+Shots & 2000 each $\Rightarrow176{,}000$ total\\
 Shot noise & $\mathrm{SE}\le1/\sqrt{2000}=0.022$ per feature\\
-Two-qubit gates & $L(n-1)=10\times4=40$ CZ, zero SWAPs\\
-Rough fidelity & $(1-3{\times}10^{-3})^{40}\approx0.89$ (two-qubit gates only) \supp{notes ch.~2}\\
+Two-qubit gates & $L(n-1)=5\times4=20$ CZ, zero SWAPs\\
+Rough fidelity & $(1-3{\times}10^{-3})^{20}\approx0.94$ (two-qubit gates only) \supp{notes ch.~2}
+\caut{check ibm\_fez's calibration error}\\
 \bottomrule
 \end{tabularx}
 \end{center}
 
 \subsection{Steps}
 \begin{enumerate}
-\item Transpile one circuit; check CZ count $=40$. If higher, fix the layout before anything else.
-\item \textbf{Pilot:} 4 circuits. Read QPU seconds used. Multiply by 36. \todo{R4: usage field in runtime 0.51}
-\item If estimate $>5$ min: drop to 1000 shots, or only Jul--Aug.
-\item \textbf{Main run:} all 144 circuits in \textbf{one} \code{SamplerV2} job. Submit Thu 09:00.
+\item Transpile one circuit; check CZ count $=20$. If higher, fix the layout before anything else.
+\item \textbf{Pilot:} 4 circuits. Read QPU seconds used. Scale to the full circuit count. \todo{R4: usage field in
+  runtime 0.51}
+\item If the estimate is $>5$ min: drop to 1000 shots, or keep only the 3 sectors facing the town.
+\item \textbf{Main run:} all circuits in \textbf{one} \code{SamplerV2} job. Submit Thu 09:00.
 \item Train ridge on Aer features (noise model of the same backend, same shots). Test on hardware features. \ours
-\item Optional: recalibrate each feature on the first 20 hardware days; score the other 124. Report both.
+\item If hardware error is much worse: run $\approx100$ training circuits on hardware and refit the ridge on hardware
+  features. Report both.
 \end{enumerate}
 
 \begin{watch}
@@ -430,14 +531,21 @@ Rough fidelity & $(1-3{\times}10^{-3})^{40}\approx0.89$ (two-qubit gates only) \
 \toprule
 \textbf{ID} & \textbf{Role} & \textbf{Owns} & \textbf{Done when}\\
 \midrule
-R1 & Data & download, QC, seasons, splits, labels, E7 & processed files + label stats\\
+R1 & Fire data & hotspots $\to$ fire groups $\to$ daily outlines $\to$ 8-sector radii and $\Delta d$; splits; E9, E10 &
+\code{sectors.parquet} for 2018--2023\\
 R2 & Quantum reservoir & chain port, exact + Aer features, E3, E4 & feature files for all splits\\
-R3 & Baselines + eval & baselines, ridge, metrics, bootstrap, E1 & one script prints main table\\
+R3 & Weather + baselines + eval & per-fire weather from hotspots, $w_k$, scaling, baselines (incl.\ FBP), ridge,
+metrics, E1, E7 & one script prints the main table\\
 R4 & Hardware & noise model, E5, pilot, E6, budget log & hardware row + shots curve\\
-R5 & Science + pitch & E2, E8, slides, Q\&A drill & 5 slides, rehearsed twice\\
+R5 & Map + pitch & outline rebuild, time-to-reach, E2, E8 map, slides, Q\&A drill & 5 slides, rehearsed twice\\
 \bottomrule
 \end{tabularx}
 \end{center}
+
+\begin{watch}
+R1 is the critical path: nothing runs until fire tracks exist. Build 2023 first (data already on disk: test + case
+study), download 2018--2022 hotspots in parallel. R3 can build weather and the FBP baseline on 2023 at once.
+\end{watch}
 
 \subsection{Interfaces (agree tonight)}
 Repo: \code{\textasciitilde/Projects/qff-ember/} with folders \code{data/ reservoir/ baselines/ eval/ hardware/
@@ -447,11 +555,13 @@ slides/}.
 \toprule
 \textbf{File} & \textbf{Contents}\\
 \midrule
-\code{data/processed/<station>.parquet} & date, season, split, ffmc, dmc, dc, fwi, u\_ffmc, u\_dmc, u\_dc, u\_fwi,
-extreme\\
-\code{features/<station>\_<model>\_<mode>.npz} & dates, X; \ mode = exact, aer, aer\_noisy, ibm\\
-\code{results/metrics.csv} & station, model, mode, lead, nmse, ss, precision, recall, f1, n\_events\\
-\code{config.yaml} & $n$, $L$, $\gamma$, seed, leads, split years, shots\\
+\code{data/processed/hotspots\_<year>.parquet} & uid, rep\_date, lat, lon, ws, wd, rh, isi, bui, ros (points inside a
+kept fire)\\
+\code{data/processed/sectors.parquet} & uid, date, sector, r\_km, dd\_km, w\_k, isi, bui, rh, ros, n\_hot, masked, y1,
+y3, split\\
+\code{features/<model>\_<mode>.npz} & row ids, X; \ mode = exact, aer, aer\_noisy, ibm\\
+\code{results/metrics.csv} & model, mode, lead, mae\_km, ss, iou, mae\_fast, n\_rows, n\_fires\\
+\code{config.yaml} & $n$, $L$, $\gamma$, seed, leads, split years, input map, shots\\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -462,12 +572,12 @@ extreme\\
 \toprule
 \textbf{When} & \textbf{Milestone}\\
 \midrule
-Wed eve & 30-min kick-off: read plan, assign roles, agree interfaces, create repo.\\
-Wed night & R1 Yellowknife processed. R2 chain port passes exact-vs-NumPy test. R3 baselines on a synthetic series.
-R4 noise model + pilot script. R5 deck skeleton + sourced case-study facts.\\
-Thu 09:00 & R4 submits pilot, then the main job.\\
+Wed eve & 30-min kick-off: read plan (verdict B), assign roles, agree interfaces.\\
+Wed night & R1 2023 rebuilt outlines + sectors + E10 sanity check. R2 chain port passes exact-vs-NumPy test. R3 weather join + baselines on a
+synthetic table. R4 noise model + pilot script. R5 deck skeleton + sourced case-study facts.\\
+Thu 09:00 & R1 2018--2022 done. \textbf{Last switch point} to the FWI plan. R4 submits pilot, then the main job.\\
 Thu 13:00 & \textbf{Checkpoint 1:} E1 table v1, E3 done, config frozen.\\
-Thu 13--18 & E4, E5, E7, E2; hardware results in.\\
+Thu 13--18 & E2, E4, E5, E7, E9; hardware results in; E8 map drafted.\\
 Thu 18:00 & \textbf{Checkpoint 2:} every number in \code{metrics.csv}; figures drafted.\\
 Thu 23:00 & \textbf{Code freeze.} Slides only after this.\\
 Fri morning & Two timed rehearsals + Q\&A drill. \todo{R5: talk time and length from Discord}\\
@@ -475,8 +585,8 @@ Fri morning & Two timed rehearsals + Q\&A drill. \todo{R5: talk time and length 
 \end{tabularx}
 \end{center}
 
-Stretch, only if Checkpoint 2 is green: one airlift-QUBO slide (``what to do with the warning''), reusing the workshop
-QAOA pipeline.
+Stretch, only if Checkpoint 2 is green: rank the towns around a fire by predicted time-to-reach (an
+``evacuate first'' list).
 
 % =====================================================================
 \section{Expected outcomes}
@@ -488,16 +598,19 @@ Written \textbf{before} running, so the result cannot move the goalposts.
 \textbf{Expectation} & \textbf{Basis}\\
 \midrule
 Reservoir $\approx$ ESN, maybe slightly worse & project3: 0.181 vs 0.167 on NARMA-2 \supp{project3 \S9}\\
-Persistence strong at 1--3 days (DC, BUI move slowly) & PronoiaQ $F_1$ tie: 0.717 vs 0.718 \supp{CONCLUSION.md}\\
-Any reservoir edge = 3-day recall of onsets & PronoiaQ recall@3d: 0.87 vs 0.77 \supp{CONCLUSION.md}\\
-All station-only models $\mathrm{SS}\approx0$ by 7--14 days & rain and wind not predictable from history \ours\\
-Hardware worse than noisy sim; recalibration narrows the gap & size unknown \caut{report as found}\\
+Persistence strong at 24\,h; weaker at 72\,h & fire speed changes with weather over days \ours\\
+Growth comes in bursts (ZF015: 110 $\to$ 1{,}318 hotspots, 12 $\to$ 13 Aug) & hardest days to predict; check them
+separately \veri{hotspot counts}\\
+Any reservoir edge is at 24\,h, on the downwind side & reservoirs help at short range, fade by long range
+\supp{QRC\_Broadcast\_Burns Fig.~1}\\
+All models weak at 72\,h if the wind turns & no weather forecast in the inputs \ours\\
+Hardware worse than noisy sim; refitting on hardware narrows the gap & size unknown \caut{report as found}\\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-\textbf{Never say:} ``quantum advantage'', ``beats classical'', ``predicts wildfires'' (we predict fire
-\emph{weather}, not ignitions).
+\textbf{Never say:} ``quantum advantage'', ``beats classical'', ``predicts wildfires'' (we predict how an existing fire
+grows, not where fires start), ``replaces fire-spread models''.
 
 % =====================================================================
 \section{Pitch and questions}
@@ -508,10 +621,10 @@ Hardware worse than noisy sim; recalibration narrows the gap & size unknown \cau
 \toprule
 \textbf{\#} & \textbf{Slide} & \textbf{Content}\\
 \midrule
-1 & Problem & 2023 numbers, Yellowknife evacuation, why days of lead time matter\\
-2 & Task & FWI at 1/3/7/14 days, extreme = training $q_{95}$, recall first\\
-3 & Method & circuit diagram, multi-timescale input, only read-out trained, ``extends PronoiaQ''\\
-4 & Results & main table, skill-vs-lead curve, 2023 case-study plot\\
+1 & Problem & 2023 numbers, Yellowknife evacuation, ``where does it go next?''\\
+2 & Task & outlines rebuilt from satellite hotspots; 8 sectors, advance at 24\,h and 72\,h, from day 3\\
+3 & Method & circuit diagram, inputs per qubit, only read-out trained, ``extends PronoiaQ''\\
+4 & Results & main table, downwind vs upwind plot, 2023 map with predicted outline\\
 5 & Hardware + limits & hardware row, shots curve, QPU seconds; parity not advantage; next steps\\
 \bottomrule
 \end{tabularx}
@@ -524,10 +637,13 @@ Hardware worse than noisy sim; recalibration narrows the gap & size unknown \cau
 \textbf{Question} & \textbf{Answer from}\\
 \midrule
 Where is the nonlinearity, if quantum dynamics is linear? & encoding + products of inputs (notes ch.~3)\\
-Why not just an ESN? & E1 table, same read-out size\\
-Why not use weather forecasts? & Section 5, last box\\
+How does it predict day 2 and day 3 if qubits cannot be reset? & new run per sample; separate ridge per lead
+(Section 4)\\
+Why not just an ESN? & E1 table, same read-out size, fully connected\\
+Why not the operational spread models? & Section 5, last box\\
 Shots, two-qubit gates, QPU seconds? & Section 7 budget table\\
-How was the threshold picked? & training-year $q_{95}$, frozen (Section 3)\\
+Why 8 sectors and not a map? & Section 3 decision box\\
+Your target comes from the same hotspots as your input? & yes; Section 3 limitation table, E10\\
 What is new this week; who built what? & Section 2 table + roles (Section 8)\\
 \bottomrule
 \end{tabularx}
@@ -541,16 +657,73 @@ What is new this week; who built what? & Section 2 table + roles (Section 8)\\
 \toprule
 \textbf{Claim} & \textbf{Status} & \textbf{Basis}\\
 \midrule
-CWFIS has daily station codes 2000--2026 & supported & listing, header, readme (4 Nov)\\
-Yellowknife A is in the federal files & supported & 27 seasons extracted (4 Nov)\\
-Chain needs no SWAPs on heavy-hex & supported & check transpiled CZ $=40$\\
+Perimeter archives are daily & \textbf{no} & perimeter-check.md, re-run (4 Nov)\\
+Hotspots are dated and cover ZF015 daily in 10--20 Aug & supported & re-run counts (4 Nov)\\
+Rebuilt outlines track the real edge & unknown & E10 vs official final perimeter\\
+Hotspot weather represents the fire's weather & supported (modelled) & hotspot attribute sheet\\
+Chain needs no SWAPs on heavy-hex & supported & check transpiled CZ $=20$\\
 Reservoir matches ESN here & expected & PronoiaQ + project3; E1 decides\\
-Reservoir improves short-lead recall & hypothesis & PronoiaQ heatwaves; may not transfer\\
-Multi-timescale input helps & hypothesis & E3 decides\\
+Reservoir helps at 24\,h downwind & hypothesis & E1, E2 decide\\
 Hardware reproduces simulation & unknown & E6 decides\\
 Quantum advantage & \textbf{not claimed} & no source supports it\\
 \bottomrule
 \end{tabularx}
 \end{center}
+
+% =====================================================================
+\phantomsection\hypertarget{refs}{}
+\section*{References}
+\markboth{References}{}
+
+\subsection*{Data}
+\begin{enumerate}[label={[D\arabic*]},leftmargin=3em]
+\item Natural Resources Canada, Canadian Forest Service. \emph{Canadian Wildland Fire Information System (CWFIS):
+  station Fire Weather Index observations}, files \code{cwfis\_fwi2000sv3.0\_ll.csv.bz2},
+  \code{cwfis\_fwi2010sv3.0\_ll.csv.bz2}, \code{cwfis\_fwi2020sv3.0\_ll.csv.bz2}.
+  \url{https://cwfis.cfs.nrcan.gc.ca/downloads/fwi_obs/} (accessed 4 Nov 2026).
+\item Natural Resources Canada, Canadian Forest Service. \emph{CWFIS reporting weather stations list},
+  \code{cwfis\_allstn2025.csv}, same directory (accessed 4 Nov 2026). Catalogue record
+  71e96091-9d23-4963-982d-9df7c7e0ea90:
+  \url{https://cwfis.cfs.nrcan.gc.ca/en/catalogue/results/71e96091-9d23-4963-982d-9df7c7e0ea90}.
+\item Natural Resources Canada, Canadian Forest Service. \emph{CWFIS fire perimeter and hotspot archives},
+  \code{<YEAR>\_perimeters.zip} (2018--2023), \code{<YEAR>\_hotspots.zip} (2012--2023).
+  \url{https://cwfis.cfs.nrcan.gc.ca/downloads/hotspots/archive/} (accessed 4 Nov 2026). Attribute sheets:
+  \url{https://cwfis.cfs.nrcan.gc.ca/downloads/hotspots/fireM3_hotspots_metadata_attributes_EN_FR.pdf},
+  \url{https://cwfis.cfs.nrcan.gc.ca/downloads/hotspots/fireM3_buffered_hotspots_metadata_attributes_EN_FR.pdf}.
+\item Government of the Northwest Territories, \emph{Fire History} map layer 81 (fire IDs ZF015-23 etc.),
+  \url{https://www.apps.geomatics.gov.nt.ca/arcgis/rest/services/GNWT/BiologicEcologic_LCC/MapServer/81}
+  (accessed 4 Nov 2026). Used to match CWFIS uid 242981 to ZF015-23.
+\end{enumerate}
+
+\subsection*{Fire behaviour}
+\begin{enumerate}[label={[F\arabic*]},leftmargin=3em]
+\item C.~E. Van Wagner, \emph{Development and Structure of the Canadian Forest Fire Weather Index System},
+  Forestry Technical Report 35, Canadian Forestry Service, Ottawa (1987). Defines ISI and BUI.
+\item Forestry Canada Fire Danger Group, \emph{Development and Structure of the Canadian Forest Fire Behavior
+  Prediction System}, Information Report ST-X-3, Ottawa (1992). The operational spread model we do not replace.
+  \caut{check the citation before using on a slide}
+\end{enumerate}
+
+\subsection*{Method}
+\begin{enumerate}[label={[M\arabic*]},leftmargin=3em]
+\item K.~Fujii, K.~Nakajima, ``Harnessing disordered-ensemble quantum dynamics for machine learning,''
+  \emph{Phys.\ Rev.\ Applied} \textbf{8}, 024030 (2017).
+\item P.~Mujal \emph{et al.}, ``Opportunities in quantum reservoir computing and extreme learning machines,''
+  \emph{Adv.\ Quantum Technol.} \textbf{4}, 2100027 (2021).
+\item A.~Sannia \emph{et al.}, ``Dissipation as a resource for quantum reservoir computing,''
+  \emph{Quantum} \textbf{8}, 1291 (2024).
+\item H.~Jaeger, H.~Haas, ``Harnessing nonlinearity: predicting chaotic systems and saving energy in wireless
+  communication,'' \emph{Science} \textbf{304}, 78--80 (2004). (ESN baseline.)
+\end{enumerate}
+
+\subsection*{Related and own prior work}
+\begin{enumerate}[label={[P\arabic*]},leftmargin=3em]
+\item PronoiaQ team, Quantathon 2026 code and \code{CONCLUSION.md} (windowed restart reservoir, Qiskit twin,
+  multi-lead read-out; marine-heatwave results).
+\item \emph{Quantum Reservoir Computing for Forecasting Nonlinear Clean-Energy and Climate Time Series},
+  hackathon specification with stress test (30 May 2026). Source of the ESN-parity and shot-noise numbers.
+\item GitHub user Luke-Fu101, \code{QRC\_Broadcast\_Burns}, \url{https://github.com/Luke-Fu101/QRC_Broadcast_Burns}
+  (accessed 4 Nov 2026). Reservoir vs ESN on Lorenz-63 for prescribed-burn weather windows; simulation only.
+\end{enumerate}
 
 \end{document}

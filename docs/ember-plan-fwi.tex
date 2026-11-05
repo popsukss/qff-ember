@@ -1,0 +1,600 @@
+% Ember -- FALLBACK plan (FWI forecasting), kept for verdict C of the perimeter check. Main plan: ember-plan.tex (fire spread).
+% Style follows project3_QRC_forecasting.pdf: every load-bearing claim carries a provenance tag.
+% Sources: CWFIS fwi_obs directory + readme + CSV header (fetched 2026-11-04); cwfis_allstn2025.csv station list;
+%   PronoiaQ code (~/Projects/Quantathon2026-QRC_detection: proof_of_concept/QRC_theoretical.py,
+%   QRC_QPU_implementation.py, QRC_horizon_forecast/) and CONCLUSION.md; project3_QRC_forecasting.pdf (stress test);
+%   hackathon notes pack (qff-hackathon-notes.tex, chapters 2, 3, 7, 8).
+% Single-pass safe: no \ref, no \tableofcontents. Contents page links to hyperref's own anchors (section.N),
+%   which resolve in one pass. Deliver .tex only; do not compile here.
+
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.2cm,headheight=14pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,array,tabularx}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage[colorlinks=true,linkcolor=NavyBlue,urlcolor=NavyBlue]{hyperref}
+\usepackage{bookmark}
+
+\setlist{nosep,leftmargin=*,topsep=2pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+% ---- section look ----
+\titleformat{\section}{\Large\bfseries\color{NavyBlue!85!black}}{\thesection}{0.6em}{}[\vspace{-2pt}{\color{NavyBlue!40}\titlerule}]
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{14pt}{6pt}
+\titlespacing*{\subsection}{0pt}{10pt}{4pt}
+
+% ---- header / footer ----
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\nouppercase{\leftmark}}
+\fancyhead[R]{\small Ember -- build plan}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\quad #1}{}}
+
+% ---- boxes ----
+\tcbset{pb/.style={enhanced,breakable,arc=2pt,boxrule=0.6pt,left=6pt,right=6pt,top=4pt,bottom=4pt,fonttitle=\bfseries}}
+\newtcolorbox{glance}{pb,colback=NavyBlue!4,colframe=NavyBlue!80!black,title={Plan at a glance}}
+\newtcolorbox{watch}{pb,colback=red!4,colframe=red!65!black,title={Watch out}}
+\newtcolorbox{decision}{pb,colback=Goldenrod!10,colframe=Goldenrod!70!black,title={Design decision}}
+\newtcolorbox{teamrule}{pb,colback=ForestGreen!5,colframe=ForestGreen!70!black,title={Team rule}}
+
+% ---- provenance tags (short) ----
+\newcommand{\tagbox}[2]{{\footnotesize\color{#1}\textsf{[#2]}}}
+\newcommand{\supp}[1]{\tagbox{ForestGreen!70!black}{S: #1}}  % supported by a source / earlier run
+\newcommand{\veri}[1]{\tagbox{ForestGreen!70!black}{V: #1}}  % verified today
+\newcommand{\ours}{\tagbox{NavyBlue}{D}}                      % our design choice
+\newcommand{\caut}[1]{\tagbox{BrickRed}{!: #1}}               % caution
+\newcommand{\todo}[1]{\tagbox{Orange!85!black}{?: #1}}        % owner must check
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\tocsec}[2]{\par\noindent\hyperlink{section.#1}{\textbf{#1}\quad #2}\par}
+
+\begin{document}
+
+% ================= page 1 =================
+\begin{center}
+{\LARGE\bfseries Ember}\par\smallskip
+{\Large Quantum reservoir forecasting of extreme fire-weather days}\par\medskip
+{\normalsize Full build plan \quad$\cdot$\quad Qiskit Fall Fest Waterloo 2026}\par
+{\small Team of 5 \quad$\cdot$\quad build Wed 4 -- Thu 5 Nov \quad$\cdot$\quad present Fri 6 Nov, Davis Centre}\par
+\end{center}
+
+\begin{glance}
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\textbf{Goal} & Forecast fire weather (FWI) 1, 3, 7, 14 days ahead at one station; warn on extreme days.\\
+\textbf{Data} & CWFIS daily station codes, 2000--2026; main station Yellowknife A (NT).\\
+\textbf{Model} & Fixed 5-qubit Qiskit circuit (reservoir) $\to$ measured features $\to$ ridge read-out. Only the
+read-out is trained.\\
+\textbf{Compare} & Persistence, climatology, AR, same-size classical reservoir (ESN), random-circuit control.\\
+\textbf{Hardware} & One batched IBM job: 2023 season, 144 circuits $\times$ 2000 shots.\\
+\textbf{Claim} & Parity with classical, possible edge in short-lead recall. \textbf{No quantum advantage.}\\
+\textbf{Credit} & Extends PronoiaQ's reservoir (Quantathon 2026, 2nd place + Best Team).\\
+\end{tabularx}
+\end{glance}
+
+\subsection*{Contents}
+\tocsec{1}{Problem and value}
+\tocsec{2}{What is reused, what is new}
+\tocsec{3}{Data}
+\tocsec{4}{Method}
+\tocsec{5}{Baselines and controls}
+\tocsec{6}{Experiments}
+\tocsec{7}{Hardware plan}
+\tocsec{8}{Team, interfaces, timeline}
+\tocsec{9}{Expected outcomes}
+\tocsec{10}{Pitch and questions}
+\tocsec{11}{Soundness audit}
+\par\noindent\hyperlink{refs}{\textbf{--}\quad References}\par
+
+\subsection*{How to read the tags}
+\begin{center}\small
+\begin{tabular}{@{}ll@{}}
+\supp{source} & backed by a source or our own earlier run\\
+\veri{what} & checked on 4 Nov 2026\\
+\ours & our design choice\\
+\caut{why} & risk, or not supported\\
+\todo{who} & owner must confirm\\
+\end{tabular}
+\end{center}
+
+\newpage
+% =====================================================================
+\section{Problem and value}
+
+\begin{itemize}
+\item 2023 season: $\approx17.2$\,M ha burned. 2025: $\approx8.9$\,M ha. \supp{CWFIS; notes ch.~1}
+\item Aug 2023: all of Yellowknife evacuated ahead of a fire. \caut{cite a primary source on the slide}
+\item Remote and fly-in towns need \textbf{days} of warning: planes, crews, destinations. \ours
+\item Miss = late evacuation. False alarm = idle crews. $\Rightarrow$ \textbf{recall first}. \ours
+\end{itemize}
+
+\textbf{Question we answer:}
+\begin{enumerate}
+\item Given the last $L$ days at one station, will FWI be extreme $h$ days from now?
+\item How far ahead is that answerable at all?
+\end{enumerate}
+
+% =====================================================================
+\section{What is reused, what is new}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}Y l l@{}}
+\toprule
+\textbf{Piece} & \textbf{Status} & \textbf{Where}\\
+\midrule
+Windowed restart reservoir (encode, entangle, frozen rotations) & reused & \code{QRC\_theoretical.py}\\
+Qiskit twin, endianness fix, Aer noise path & reused & \code{QRC\_QPU\_implementation.py}\\
+One ridge read-out per lead time & reused & \code{QRC\_horizon\_forecast/}\\
+Canadian CWFIS data and labels & \textbf{new} & --\\
+Multi-timescale input (one moisture code per qubit) & \textbf{new} & --\\
+Chain entangler (no SWAPs on IBM chips) & \textbf{new} & --\\
+Real IBM hardware run & \textbf{new} & PronoiaQ never ran it\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{watch}
+PronoiaQ was a team of four. Say ``extends PronoiaQ's reservoir''. Do not present the engine as this week's work.
+\end{watch}
+
+% =====================================================================
+\section{Data}
+
+\subsection{Source}
+\begin{itemize}
+\item Archive: \url{https://cwfis.cfs.nrcan.gc.ca/downloads/fwi_obs/} \veri{directory listing}
+\item Files (one per decade):
+  \begin{itemize}
+  \item \code{cwfis\_fwi2000sv3.0\_ll.csv.bz2} (50\,MB)
+  \item \code{cwfis\_fwi2010sv3.0\_ll.csv.bz2} (88\,MB)
+  \item \code{cwfis\_fwi2020sv3.0\_ll.csv.bz2} (101\,MB, updated 5 Oct 2026)
+  \end{itemize}
+\item One row per station per day (12:00). \veri{CSV header}
+\item Columns used: \code{rep\_date, aes, name, lat, lon, ffmc, dmc, dc, fwi, calcstatus}.
+\item Missing value = empty field, negative \code{calcstatus}. \veri{sample rows}
+\item Provincial stations are not in these files. \veri{readme.txt}
+\item Slides must credit: Canadian Forest Service, CWFIS. \supp{CWFIS metadata}
+\end{itemize}
+
+\subsection{Stations}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l l l Y@{}}
+\toprule
+\textbf{Role} & \textbf{Name in file} & \textbf{aes} & \textbf{Why}\\
+\midrule
+Main & \code{YELLOWKNIFE+A} (NT) & 2204100 & 2023 city evacuation\\
+Test 2 & \code{KELOWNA} (BC) & 1123939 & 2023 McDougall Creek fire\\
+Test 3 & \code{JASPER+WARDEN} (AB) & 3053536 & 2024 Jasper fire\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\veri{cwfis\_allstn2025.csv}
+
+\textbf{Coverage, 1 May -- 30 Sep} \veri{extracted from the three decade files, 24{,}747 rows}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l l l l l Y@{}}
+\toprule
+\textbf{Station} & \textbf{Years} & \textbf{$\ge$90\% full} & \textbf{Train $q_{95}$} & \textbf{Test extremes} & \textbf{2023 peak FWI}\\
+\midrule
+Yellowknife A & 2000--2026 (27) & 14 & 35.2 & 64 of 712 & 56.2 on 13 Aug\\
+Kelowna & 2009--2026 (15) & 14 & 59.3 & 47 of 763 & 103.0 on 18 Aug\\
+Jasper Warden & 2000--2026 (27) & 11 & 33.7 & 28 of 750 & 38.6 on 4 Jun\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\begin{itemize}
+\item Yellowknife: most gaps are small (seasons 80--90\% full) $\Rightarrow$ the gap rule handles them.
+\item Kelowna starts 2009 $\Rightarrow$ only 9 training seasons (2009--2017).
+\item Jasper: 2019 is almost empty (8\%), 2000--2003 patchy $\Rightarrow$ weakest station.
+\item Test seasons are hotter: Yellowknife has 64 test days above the training $q_{95}$ (9\%, not 5\%).
+  \caut{non-stationary climate; recalibrating the threshold is a design choice, say which one you used}
+\item Yellowknife 2023 peak FWI was 13 Aug, three days before the evacuation order. \caut{check the evacuation date
+  against a primary source}
+\end{itemize}
+
+\subsection{Season, splits, labels}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+\textbf{Item} & \textbf{Rule}\\
+\midrule
+Season & 1 May -- 30 Sep (153 days). Windows never cross winter. \ours\\
+Train & 2000--2017 (18 seasons; Yellowknife 2{,}473 valid days)\\
+Validation & 2018--2021 (4 seasons; 545 days, 14 extreme)\\
+Test & 2022--2026 (5 seasons, includes 2023; 712 days). 2026 is in the file. \veri{extract}\\
+Split rule & By year. Never shuffle days. \supp{notes ch.~3}\\
+Target & $y_{t+h}=\mathrm{FWI}_{t+h}$, \ $h\in\{1,3,7,14\}$\\
+Extreme day & $\mathrm{FWI}\ge q_{95}$ of training-season days, per station, frozen before validation. \supp{notes ch.~1}\\
+Scaling & Min--max on training years, clip to $[0,1]$. \ours\\
+Gaps & Fill $\le2$ days forward; drop windows touching longer gaps. \ours\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{watch}
+5\% base rate $\Rightarrow$ only $\approx38$ extreme days per station in test. Always print the event count and a
+season-block bootstrap interval next to recall and $F_1$.
+\end{watch}
+
+\subsection{Why the FWI codes suit a reservoir}
+\begin{center}\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Code} & \textbf{Tracks} & \textbf{Memory (time-lag)}\\
+\midrule
+FFMC & fine surface fuel & $\approx\tfrac23$ day\\
+DMC & loose duff layer & $\approx12$ days\\
+DC & deep drought & $\approx52$ days\\
+\bottomrule
+\end{tabular}
+\end{center}
+\caut{Van Wagner 1987 values; cite before using on a slide}
+
+A 10-day FWI window cannot see a 52-day drought. DC on its own qubit can. \ours
+
+% =====================================================================
+\section{Method}
+
+\subsection{Circuit (one per day $t$, restarted each day)}
+Feed the window $\mathbf u_{t-L+1},\dots,\mathbf u_t$, oldest first. Each step $k$ applies:
+\[
+\underbrace{\bigotimes_i R_Y\!\big(\gamma\, g_i\, u_{k,c(i)}\big)}_{\text{encode}}
+\;\longrightarrow\;
+\underbrace{\prod_{i=0}^{n-2} \mathrm{CZ}_{i,i+1}}_{\text{chain entangler}}
+\;\longrightarrow\;
+\underbrace{\bigotimes_i R_Z(b_i)\,R_Y(a_i)}_{\text{frozen random}}
+\]
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l l Y@{}}
+\toprule
+\textbf{Symbol} & \textbf{Value} & \textbf{Meaning}\\
+\midrule
+$n$ & 5 & qubits \supp{PronoiaQ}\\
+$L$ & 10 & window in days; sweep 5, 10, 15 \ours\\
+$\gamma$ & $\pi/2$ & encoding gain; sweep $\pi/4,\pi/2,\pi$ \supp{PronoiaQ}\\
+$g_i,a_i,b_i$ & random, seed 7 & frozen, never trained \supp{PronoiaQ}\\
+$c(i)$ & see below & which input goes on qubit $i$ \ours\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Input per qubit: \quad q0, q1 $\to$ FWI \quad q2 $\to$ FFMC \quad q3 $\to$ DMC \quad q4 $\to$ DC.
+
+\begin{decision}
+\textbf{Chain, not ring.} PronoiaQ entangles a 5-qubit ring. IBM heavy-hex chips have no 5-cycles, so a ring
+needs SWAPs. A chain maps to a path on the chip with \textbf{zero SWAPs}. Use the chain in simulation too, so
+simulation and hardware are the same model. \ours
+\end{decision}
+
+\subsection{Features}
+\begin{center}\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Basis} & \textbf{Features} & \textbf{Count}\\
+\midrule
+Z & $\langle Z_i\rangle$, \ $\langle Z_iZ_j\rangle$ & $5+10=15$\\
+X (extra circuit) & $\langle X_i\rangle$ & 5\\
+\midrule
+Simulation & Z + X + bias & 21\\
+Hardware & Z + bias & 16\\
+\bottomrule
+\end{tabular}
+\end{center}
+\supp{PronoiaQ \code{counts\_to\_features}}
+
+\begin{watch}
+Qiskit count keys are little-endian (qubit 0 = rightmost bit). Reverse exactly once, inside
+\code{counts\_to\_features}. Nowhere else.
+\end{watch}
+
+\subsection{Read-out}
+\[
+w_h^\star=(X^\top X+\lambda I)^{-1}X^\top y_h,
+\qquad
+\hat y_{t+h}=w_h^{\star\top}\,\tilde x_t
+\]
+\begin{itemize}
+\item One ridge per lead $h$. \supp{PronoiaQ}
+\item $\lambda$ from validation, grid $10^{-6}$ to $10^{2}$.
+\item 21 parameters vs $\approx2{,}750$ training rows.
+\end{itemize}
+
+\subsection{Detect}
+Alarm at lead $h$ if $\hat y_{t+h}\ge\tau_h$. Two thresholds, both chosen on validation: \ours
+\begin{itemize}
+\item $\tau_h^{F_1}$: maximises $F_1$.
+\item $\tau_h^{R}$: smallest with recall $\ge0.8$ (recall-first).
+\end{itemize}
+\[
+\text{precision}=\frac{TP}{TP+FP},\qquad
+\text{recall}=\frac{TP}{TP+FN},\qquad
+F_1=\frac{2TP}{2TP+FP+FN}
+\]
+
+% =====================================================================
+\section{Baselines and controls}
+
+\begin{teamrule}
+Build and score the baselines \textbf{before} the quantum reservoir.
+\end{teamrule}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l Y Y@{}}
+\toprule
+\textbf{Model} & \textbf{Definition} & \textbf{Why it is here}\\
+\midrule
+Climatology & mean FWI for that calendar day, training years & reference for skill\\
+Persistence & $\hat y_{t+h}=y_t$ & strong on slow series; tied PronoiaQ on $F_1$ \supp{CONCLUSION.md}\\
+AR($p$) & linear in last $p\le L$ days, same inputs & linear floor\\
+ESN & 20-node tanh reservoir, same inputs, same ridge & same read-out size \supp{notes ch.~8}\\
+Random circuit & same circuit, Haar-random entangler, 10 seeds & tuned dynamics vs just ``quantum'' \supp{notes ch.~8}\\
+Raw window & ridge on the raw $L$-day inputs & does the reservoir add anything? \ours\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Scores per lead $h$:
+\[
+\mathrm{NMSE}_h=\frac{\sum_t(y_{t+h}-\hat y_{t+h})^2}{\sum_t(y_{t+h}-\bar y)^2},
+\qquad
+\mathrm{SS}_h=1-\frac{\mathrm{MSE}_h^{\text{model}}}{\mathrm{MSE}_h^{\text{clim}}}
+\]
+$\mathrm{SS}_h\le0$ means no better than climatology.
+
+\begin{watch}
+\textbf{Weather forecasts beat us.} Fire centres feed weather-model forecasts into FWI; CWFIS publishes them (NAEFS,
+SCRIBE). \veri{READMEs in fwi\_obs/} Station history alone will not beat that at 3--7 days.
+Position Ember as ``what station history alone can tell you''. Rehearse this answer.
+\end{watch}
+
+% =====================================================================
+\section{Experiments}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l Y Y l@{}}
+\toprule
+\textbf{ID} & \textbf{Run} & \textbf{Output} & \textbf{Owner}\\
+\midrule
+E1 & All models, exact features, Yellowknife, all leads & main table: NMSE, SS, P / R / $F_1$ & R3\\
+E2 & Skill vs lead, every model & ``how far ahead'' curve & R5\\
+E3 & Sweep $L$, $\gamma$, input map (FWI only vs multi-timescale) & frozen config & R2\\
+E4 & Random-circuit control, 10 seeds & mean $\pm$ sd vs tuned & R2\\
+E5 & Shots $10^2,10^3,2{\times}10^3,10^4$ on Aer, with and without noise & NMSE-vs-shots curve & R4\\
+E6 & Hardware, 2023 season, Z basis, 2000 shots & hardware vs noisy sim vs exact & R4\\
+E7 & Kelowna, Jasper, frozen config & generalisation rows & R1\\
+E8 & Yellowknife 2023 case study & FWI, 7-day forecast, alarms, evacuation date & R5\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{teamrule}
+Pick the configuration in E3 on validation only. Freeze it. Then compute test numbers once. \supp{notes ch.~8}
+\end{teamrule}
+
+% =====================================================================
+\section{Hardware plan}
+
+\subsection{Budget}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+\textbf{Item} & \textbf{Value}\\
+\midrule
+Plan limit & 10 min QPU per 28 days per account; job or batch mode, no \code{Session} \veri{IBM plans page; error 1352}\\
+Circuits & $153-(L-1)=144$ (2023 season, Z basis)\\
+Shots & 2000 each $\Rightarrow288{,}000$ total\\
+Shot noise & $\mathrm{SE}\le1/\sqrt{2000}=0.022$ per feature\\
+Two-qubit gates & $L(n-1)=10\times4=40$ CZ, zero SWAPs\\
+Rough fidelity & $(1-3{\times}10^{-3})^{40}\approx0.89$ (two-qubit gates only) \supp{notes ch.~2}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Steps}
+\begin{enumerate}
+\item Transpile one circuit; check CZ count $=40$. If higher, fix the layout before anything else.
+\item \textbf{Pilot:} 4 circuits. Read QPU seconds used. Multiply by 36. \todo{R4: usage field in runtime 0.51}
+\item If estimate $>5$ min: drop to 1000 shots, or only Jul--Aug.
+\item \textbf{Main run:} all 144 circuits in \textbf{one} \code{SamplerV2} job. Submit Thu 09:00.
+\item Train ridge on Aer features (noise model of the same backend, same shots). Test on hardware features. \ours
+\item Optional: recalibrate each feature on the first 20 hardware days; score the other 124. Report both.
+\end{enumerate}
+
+\begin{watch}
+\begin{itemize}
+\item \textbf{Shot noise is the biggest risk.} Stress test: NRMSE 0.18 exact $\to$ 1.01 at 100 shots.
+  \supp{project3 \S9.1} Show the degradation; do not hide it.
+\item \textbf{Fallback:} the main table is all simulation. The hardware row is extra, so a queue failure never breaks
+  the demo. \supp{project3 \S9.3}
+\item \textbf{Keys:} each member saves their own key with \code{getpass} in a terminal. Never in notebooks or git.
+\end{itemize}
+\end{watch}
+
+% =====================================================================
+\section{Team, interfaces, timeline}
+
+\subsection{Roles}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l l Y Y@{}}
+\toprule
+\textbf{ID} & \textbf{Role} & \textbf{Owns} & \textbf{Done when}\\
+\midrule
+R1 & Data & download, QC, seasons, splits, labels, E7 & processed files + label stats\\
+R2 & Quantum reservoir & chain port, exact + Aer features, E3, E4 & feature files for all splits\\
+R3 & Baselines + eval & baselines, ridge, metrics, bootstrap, E1 & one script prints main table\\
+R4 & Hardware & noise model, E5, pilot, E6, budget log & hardware row + shots curve\\
+R5 & Science + pitch & E2, E8, slides, Q\&A drill & 5 slides, rehearsed twice\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Interfaces (agree tonight)}
+Repo: \code{\textasciitilde/Projects/qff-ember/} with folders \code{data/ reservoir/ baselines/ eval/ hardware/
+slides/}.
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+\textbf{File} & \textbf{Contents}\\
+\midrule
+\code{data/processed/<station>.parquet} & date, season, split, ffmc, dmc, dc, fwi, u\_ffmc, u\_dmc, u\_dc, u\_fwi,
+extreme\\
+\code{features/<station>\_<model>\_<mode>.npz} & dates, X; \ mode = exact, aer, aer\_noisy, ibm\\
+\code{results/metrics.csv} & station, model, mode, lead, nmse, ss, precision, recall, f1, n\_events\\
+\code{config.yaml} & $n$, $L$, $\gamma$, seed, leads, split years, shots\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Timeline (Waterloo time)}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l Y@{}}
+\toprule
+\textbf{When} & \textbf{Milestone}\\
+\midrule
+Wed eve & 30-min kick-off: read plan, assign roles, agree interfaces, create repo.\\
+Wed night & R1 Yellowknife processed. R2 chain port passes exact-vs-NumPy test. R3 baselines on a synthetic series.
+R4 noise model + pilot script. R5 deck skeleton + sourced case-study facts.\\
+Thu 09:00 & R4 submits pilot, then the main job.\\
+Thu 13:00 & \textbf{Checkpoint 1:} E1 table v1, E3 done, config frozen.\\
+Thu 13--18 & E4, E5, E7, E2; hardware results in.\\
+Thu 18:00 & \textbf{Checkpoint 2:} every number in \code{metrics.csv}; figures drafted.\\
+Thu 23:00 & \textbf{Code freeze.} Slides only after this.\\
+Fri morning & Two timed rehearsals + Q\&A drill. \todo{R5: talk time and length from Discord}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Stretch, only if Checkpoint 2 is green: one airlift-QUBO slide (``what to do with the warning''), reusing the workshop
+QAOA pipeline.
+
+% =====================================================================
+\section{Expected outcomes}
+Written \textbf{before} running, so the result cannot move the goalposts.
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}Y Y@{}}
+\toprule
+\textbf{Expectation} & \textbf{Basis}\\
+\midrule
+Reservoir $\approx$ ESN, maybe slightly worse & project3: 0.181 vs 0.167 on NARMA-2 \supp{project3 \S9}\\
+Persistence strong at 1--3 days (DC, BUI move slowly) & PronoiaQ $F_1$ tie: 0.717 vs 0.718 \supp{CONCLUSION.md}\\
+Any reservoir edge = 3-day recall of onsets & PronoiaQ recall@3d: 0.87 vs 0.77 \supp{CONCLUSION.md}\\
+All station-only models $\mathrm{SS}\approx0$ by 7--14 days & rain and wind not predictable from history \ours\\
+Hardware worse than noisy sim; recalibration narrows the gap & size unknown \caut{report as found}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Never say:} ``quantum advantage'', ``beats classical'', ``predicts wildfires'' (we predict fire
+\emph{weather}, not ignitions).
+
+% =====================================================================
+\section{Pitch and questions}
+
+\subsection{Five slides}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l l Y@{}}
+\toprule
+\textbf{\#} & \textbf{Slide} & \textbf{Content}\\
+\midrule
+1 & Problem & 2023 numbers, Yellowknife evacuation, why days of lead time matter\\
+2 & Task & FWI at 1/3/7/14 days, extreme = training $q_{95}$, recall first\\
+3 & Method & circuit diagram, multi-timescale input, only read-out trained, ``extends PronoiaQ''\\
+4 & Results & main table, skill-vs-lead curve, 2023 case-study plot\\
+5 & Hardware + limits & hardware row, shots curve, QPU seconds; parity not advantage; next steps\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Questions to rehearse}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}Y Y@{}}
+\toprule
+\textbf{Question} & \textbf{Answer from}\\
+\midrule
+Where is the nonlinearity, if quantum dynamics is linear? & encoding + products of inputs (notes ch.~3)\\
+Why not just an ESN? & E1 table, same read-out size\\
+Why not use weather forecasts? & Section 5, last box\\
+Shots, two-qubit gates, QPU seconds? & Section 7 budget table\\
+How was the threshold picked? & training-year $q_{95}$, frozen (Section 3)\\
+What is new this week; who built what? & Section 2 table + roles (Section 8)\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================================
+\section{Soundness audit}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}Y l Y@{}}
+\toprule
+\textbf{Claim} & \textbf{Status} & \textbf{Basis}\\
+\midrule
+CWFIS has daily station codes 2000--2026 & supported & listing, header, readme (4 Nov)\\
+Yellowknife A is in the federal files & supported & 27 seasons extracted (4 Nov)\\
+Chain needs no SWAPs on heavy-hex & supported & check transpiled CZ $=40$\\
+Reservoir matches ESN here & expected & PronoiaQ + project3; E1 decides\\
+Reservoir improves short-lead recall & hypothesis & PronoiaQ heatwaves; may not transfer\\
+Multi-timescale input helps & hypothesis & E3 decides\\
+Hardware reproduces simulation & unknown & E6 decides\\
+Quantum advantage & \textbf{not claimed} & no source supports it\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================================
+\phantomsection\hypertarget{refs}{}
+\section*{References}
+\markboth{References}{}
+
+\subsection*{Data}
+\begin{enumerate}[label={[D\arabic*]},leftmargin=3em]
+\item Natural Resources Canada, Canadian Forest Service. \emph{Canadian Wildland Fire Information System (CWFIS):
+  station Fire Weather Index observations}, files \code{cwfis\_fwi2000sv3.0\_ll.csv.bz2},
+  \code{cwfis\_fwi2010sv3.0\_ll.csv.bz2}, \code{cwfis\_fwi2020sv3.0\_ll.csv.bz2}.
+  \url{https://cwfis.cfs.nrcan.gc.ca/downloads/fwi_obs/} (accessed 4 Nov 2026).
+\item Natural Resources Canada, Canadian Forest Service. \emph{CWFIS reporting weather stations list},
+  \code{cwfis\_allstn2025.csv}, same directory (accessed 4 Nov 2026). Catalogue record
+  71e96091-9d23-4963-982d-9df7c7e0ea90:
+  \url{https://cwfis.cfs.nrcan.gc.ca/en/catalogue/results/71e96091-9d23-4963-982d-9df7c7e0ea90}.
+\end{enumerate}
+
+\subsection*{Fire Weather Index system}
+\begin{enumerate}[label={[F\arabic*]},leftmargin=3em]
+\item C.~E. Van Wagner, \emph{Development and Structure of the Canadian Forest Fire Weather Index System},
+  Forestry Technical Report 35, Canadian Forestry Service, Ottawa (1987). Source of the FFMC/DMC/DC time-lags.
+\end{enumerate}
+
+\subsection*{Method}
+\begin{enumerate}[label={[M\arabic*]},leftmargin=3em]
+\item K.~Fujii, K.~Nakajima, ``Harnessing disordered-ensemble quantum dynamics for machine learning,''
+  \emph{Phys.\ Rev.\ Applied} \textbf{8}, 024030 (2017).
+\item P.~Mujal \emph{et al.}, ``Opportunities in quantum reservoir computing and extreme learning machines,''
+  \emph{Adv.\ Quantum Technol.} \textbf{4}, 2100027 (2021).
+\item A.~Sannia \emph{et al.}, ``Dissipation as a resource for quantum reservoir computing,''
+  \emph{Quantum} \textbf{8}, 1291 (2024).
+\item H.~Jaeger, H.~Haas, ``Harnessing nonlinearity: predicting chaotic systems and saving energy in wireless
+  communication,'' \emph{Science} \textbf{304}, 78--80 (2004). (ESN baseline.)
+\end{enumerate}
+
+\subsection*{Own prior work}
+\begin{enumerate}[label={[P\arabic*]},leftmargin=3em]
+\item PronoiaQ team, Quantathon 2026 code and \code{CONCLUSION.md} (windowed restart reservoir, Qiskit twin,
+  multi-lead read-out; marine-heatwave results).
+\item \emph{Quantum Reservoir Computing for Forecasting Nonlinear Clean-Energy and Climate Time Series},
+  hackathon specification with stress test (30 May 2026). Source of the ESN-parity and shot-noise numbers.
+\end{enumerate}
+
+\end{document}
