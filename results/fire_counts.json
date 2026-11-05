@@ -1,0 +1,38 @@
+{
+  "2018": {
+    "fires": 134,
+    "sector_rows": 43824,
+    "split": "train",
+    "origin_days": 5076
+  },
+  "2019": {
+    "fires": 44,
+    "sector_rows": 17200,
+    "split": "train",
+    "origin_days": 2018
+  },
+  "2020": {
+    "fires": 7,
+    "sector_rows": 1816,
+    "split": "train",
+    "origin_days": 206
+  },
+  "2021": {
+    "fires": 193,
+    "sector_rows": 63464,
+    "split": "train",
+    "origin_days": 7354
+  },
+  "2022": {
+    "fires": 102,
+    "sector_rows": 40552,
+    "split": "val",
+    "origin_days": 4763
+  },
+  "2023": {
+    "fires": 392,
+    "sector_rows": 171392,
+    "split": "test",
+    "origin_days": 20248
+  }
+}
