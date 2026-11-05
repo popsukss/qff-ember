@@ -20,7 +20,7 @@ from ember.windows import MinMaxScaler01, make_windows
 
 CONFIG_PATH = Path(__file__).resolve().parents[1] / "config.yaml"
 FEATURE_MODE = "Exact noiseless expectation values computed with the NumPy statevector twin (mode='numpy')."
-RIDGE_MODELS = {"raw", "esn5", "esn20", "qrc", "qrc_raw", "haar"}
+RIDGE_MODELS = {"raw", "esn5", "esn20", "qrc", "qrc_z", "qrc_raw", "haar"}
 
 
 def _config(path=CONFIG_PATH):
@@ -33,15 +33,35 @@ def featurize(name, W, *, gamma, seed, ent_seed, esn_seed):
         return raw_window_features(W)
     if name in ("esn5", "esn20"):
         return ESN(int(name[3:]), 5, esn_seed).features(W)
-    if name in ("qrc", "qrc_raw", "haar"):
+    if name in ("qrc", "qrc_z", "qrc_raw", "haar"):
         reservoir = ChainReservoir(n=5, gamma=gamma, seed=seed,
                                    entangler="haar" if name == "haar" else "cz_chain",
                                    ent_seed=ent_seed)
         features = reservoir.feature_matrix(W, mode="numpy")
+        if name == "qrc_z":
+            return features[:, :15]
         if name == "qrc_raw":
             return np.column_stack((features, raw_window_features(W)))
         return features
     raise ValueError(f"unknown feature model {name!r}")
+
+
+def drop_hotspot_days(hot, frac, seed):
+    """Remove seeded UTC detection days per fire, preserving its first day."""
+    if not np.isfinite(frac) or not 0 <= frac <= 1:
+        raise ValueError("frac must be finite and between 0 and 1")
+    if frac == 0:
+        return hot
+    rng = np.random.default_rng(seed)
+    days = pd.to_datetime(hot["rep_date"], utc=True).dt.normalize()
+    keep = np.ones(len(hot), dtype=bool)
+    for positions in hot.groupby("uid", sort=True).indices.values():
+        fire_days = days.iloc[positions]
+        candidates = fire_days.drop_duplicates().sort_values().iloc[1:]
+        count = round(frac * len(candidates))
+        dropped = rng.choice(candidates.to_numpy(), size=count, replace=False)
+        keep[positions] = ~fire_days.isin(dropped).to_numpy()
+    return hot.loc[keep]
 
 
 def clip_prediction(yhat):

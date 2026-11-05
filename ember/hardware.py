@@ -13,10 +13,16 @@ from qiskit_aer import AerSimulator
 from qiskit_ibm_runtime import QiskitRuntimeService, SamplerV2
 from qiskit_ibm_runtime.fake_provider import FakeFez
 
-from ember.reservoir import counts_to_features
+from ember.reservoir import ChainReservoir, counts_to_features
 
 JOBS_PATH = Path(__file__).resolve().parents[1] / "hardware" / "jobs.json"
 _runtime_service = None
+
+
+def frozen_reservoir(frozen_path):
+    """Construct the validation-selected reservoir, including its fixed seed."""
+    frozen = json.loads(Path(frozen_path).read_text())
+    return ChainReservoir(gamma=frozen["gamma"], seed=frozen["reservoir_seed"])
 
 
 def _positive_int(value, name):

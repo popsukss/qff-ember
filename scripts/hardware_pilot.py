@@ -11,7 +11,6 @@ from qiskit_ibm_runtime.fake_provider import FakeFez
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ember import hardware
-from ember.reservoir import ChainReservoir
 
 
 def _case_windows(path):
@@ -42,7 +41,8 @@ def main():
     if args.submit and args.windows is None:
         parser.error("--submit requires --windows with the real scaled case archive")
 
-    reservoir = ChainReservoir()
+    reservoir = hardware.frozen_reservoir(
+        Path(__file__).resolve().parents[1] / "results" / "frozen_config.json")
     windows = np.random.default_rng(args.seed).uniform(0, 1, size=(4, 5, 5))
     circuits = hardware.build_circuits(reservoir, windows)
     isa = hardware.transpile_for(circuits, FakeFez(), seed=args.seed)
