@@ -1,0 +1,28 @@
+.venv/bin/python -I -m pytest tests/test_experiments.py -q -k 'not real'
+exit 0: 13 tests passed.
+
+.venv/bin/python -I -m pytest -q
+exit 0: 92 tests passed (72 at 78%, 20 at 100%); two existing Qiskit SamplerV2 deprecation warnings from ember/hardware.py:80.
+
+Synthetic adversarial audit:
+PASS: perturbing only test inputs and targets leaves scaler fits, ridge fits, FBP burn-minute fits, lambda selection inputs and penalties, and all validation scores identical.
+PASS: lead-specific missing-target filtering, no-growing-row MAE = NaN, strict wind threshold equality = crosswind, and calm wind = crosswind.
+
+.venv/bin/python -I scripts/check_scope.py --allow 'ember/experiments.py' --allow 'scripts/run_experiments.py' --allow 'results/*'
+changed in scope: 13
+  ok   ember/experiments.py
+  ok   results/U5-report.md
+  ok   results/e2_wind.csv
+  ok   results/e3_val.csv
+  ok   results/e4_seeds.csv
+  ok   results/frozen_config.json
+  ok   results/metrics.csv
+  ok   results/qrc_comparisons.csv
+  ok   results/run_summary.json
+  ok   results/test_mae.html
+  ok   results/test_mae.png
+  ok   results/verification.txt
+  ok   scripts/run_experiments.py
+exit 0
+
+git diff --exit-code HEAD: exit 0; all pre-existing tracked files unchanged. No commit created.

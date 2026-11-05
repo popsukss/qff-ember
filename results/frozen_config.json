@@ -1,0 +1,42 @@
+{
+  "L": 5,
+  "config_sha256": "9672868c35fa057b69fd5678cb010793f5b626710ccfe787faede371908c2c50",
+  "created_utc": "2026-11-05T04:33:29.654867+00:00",
+  "e4_haar_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "e4_reservoir_seeds": [
+    7,
+    11,
+    13,
+    17,
+    19
+  ],
+  "esn_seed": 0,
+  "feature_mode": "Exact noiseless expectation values computed with the NumPy statevector twin (mode='numpy').",
+  "gamma": 0.7853981633974483,
+  "haar_aggregation": "Arithmetic mean of per-seed metrics and CI endpoints over 10 entangler seeds; lam is the mean selected penalty, not an ensemble penalty.",
+  "input_map": [
+    "w_k",
+    "isi",
+    "dd_km",
+    "bui",
+    "rh"
+  ],
+  "lambda_selection": "Accepted select_lambda on train/val; all reported scores use clipped nonnegative predictions.",
+  "lambdas": {
+    "1": 1e-06,
+    "3": 1e-06
+  },
+  "reservoir_seed": 7,
+  "val_skill_mean": -0.07043490996394852
+}

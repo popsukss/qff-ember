@@ -1,0 +1,11 @@
+{
+  "runtime_seconds": 33.03199329203926,
+  "feature_mode": "Exact noiseless expectation values computed with the NumPy statevector twin (mode='numpy').",
+  "frozen_sha256": "a0e215ee828bcb1a5d918d1db2f220c86a8d9ce538fd655a265c022c7a03caba",
+  "bootstrap": "1000 fire resamples, seed 0, percentile 95% CIs; pooled row-weighted MAE.",
+  "iou": "Mean across complete 8-sector fire-day outlines, reconstructed radii r(t)+y and r(t)+clipped prediction.",
+  "haar_aggregation": "Arithmetic mean of per-seed metrics and CI endpoints over 10 entangler seeds; lam is the mean selected penalty, not an ensemble penalty.",
+  "test_protocol": "Test loaded only after freeze/hash verification. Each fixed model/seed scored once; E2 and seed-7 E4 reuse E1 predictions. No selection uses test.",
+  "mae_growing": "Rows with target > 0, per lead.",
+  "seed_spreads": "{\"('mae', 'mean')\":{\"('haar', 1)\":0.3605736316,\"('haar', 3)\":0.9459312758,\"('qrc', 1)\":0.3623901936,\"('qrc', 3)\":0.9498909698},\"('mae', 'std')\":{\"('haar', 1)\":0.0073007916,\"('haar', 3)\":0.0154589582,\"('qrc', 1)\":0.0081386844,\"('qrc', 3)\":0.016247647},\"('mae', 'min')\":{\"('haar', 1)\":0.3465139013,\"('haar', 3)\":0.9201813355,\"('qrc', 1)\":0.3540116925,\"('qrc', 3)\":0.9387824326},\"('mae', 'max')\":{\"('haar', 1)\":0.3679350988,\"('haar', 3)\":0.9620547885,\"('qrc', 1)\":0.3730120126,\"('qrc', 3)\":0.9779328634},\"('skill', 'mean')\":{\"('haar', 1)\":-0.0332034961,\"('haar', 3)\":0.1157746878,\"('qrc', 1)\":-0.0384087526,\"('qrc', 3)\":0.1120732967},\"('skill', 'std')\":{\"('haar', 1)\":0.0209200083,\"('haar', 3)\":0.0144505235,\"('qrc', 1)\":0.0233209433,\"('qrc', 3)\":0.0151877638},\"('skill', 'min')\":{\"('haar', 1)\":-0.054297367,\"('haar', 3)\":0.1007029607,\"('qrc', 1)\":-0.0688449785,\"('qrc', 3)\":0.0858606607},\"('skill', 'max')\":{\"('haar', 1)\":0.0070838715,\"('haar', 3)\":0.1398448815,\"('qrc', 1)\":-0.0144006281,\"('qrc', 3)\":0.1224571903}}"
+}
