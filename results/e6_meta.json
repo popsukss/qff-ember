@@ -1,0 +1,32 @@
+{
+  "job_id": "dbm0tm58ft8s738tu920",
+  "usage": {
+    "qpu_charge_time_seconds": 238,
+    "value": 3.954931,
+    "unit": "resource_units",
+    "status": "complete",
+    "details": [
+      {
+        "value": 3.954931,
+        "unit": "resource_units",
+        "metric": {
+          "id": "caffe3ca-729c-5750-8777-df63bbf8bfd9",
+          "value": 238
+        }
+      }
+    ]
+  },
+  "timestamps": {
+    "created": "2026-11-05T05:06:33.376869Z",
+    "finished": "2026-11-05T05:11:20.466444Z",
+    "running": "2026-11-05T05:06:35.195027Z"
+  },
+  "backend": "ibm_fez",
+  "shots": 10000,
+  "submitted_at": "2026-11-05T05:06:33.542460+00:00",
+  "hw_features_path": "/Users/popsuksumetchoengprachya/Projects/qff-ember/hardware/e6_hw_features.npy",
+  "custom_hw_features": false,
+  "fake_fez_shots": 10000,
+  "fake_fez_seed": 0,
+  "runtime_seconds": 7.462851708056405
+}
