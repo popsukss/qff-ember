@@ -39,7 +39,7 @@ def ring_rows():
     for h in LEADS:
         get = lambda m: float(r[(r.model == m) & (r.lead == h)].val_mae.iloc[0])
         q, e = get("ring"), get("esn_ring152")
-        out.append({"group": "neighbour slices", "qubits": 16, "label": "16 qubits (ring)\noptimistic: γ picked on val",
+        out.append({"group": "neighbour slices", "qubits": 16, "label": "16 qubits\n(ring)",
                     "lead": h, "quantum": q, "q_min": q, "q_max": q, "q_seeds": 1, "q_config": "gamma=0.25pi",
                     "esn": e, "e_min": e, "e_max": e, "e_seeds": 1, "e_config": "input_scale=1.0",
                     "raw": get("raw_ring"), "source": "E12"})
@@ -83,15 +83,11 @@ def main():
     width = 0.26
     for ax, h in zip(axes, LEADS):
         d = table[table.lead == h].set_index("label").loc[order.label]
-        ring = (d.source == "E12").to_numpy()
-        ax.bar(x - width, d.quantum, width, color=COLORS["quantum"], label="Quantum reservoir", zorder=2,
-               hatch=["//" if r else "" for r in ring], edgecolor="white", lw=0)
-        ax.bar(x, d.esn, width, color=COLORS["esn"], label="Classical reservoir (ESN), same size", zorder=2,
-               hatch=["//" if r else "" for r in ring], edgecolor="white", lw=0)
-        for off, lo, hi, n in ((-width, d.q_min, d.q_max, d.q_seeds), (0.0, d.e_min, d.e_max, d.e_seeds)):
-            multi = (n > 1).to_numpy()
-            ax.vlines(x[multi] + off, lo[multi], hi[multi], color="#111111", lw=1.2, zorder=3,
-                      label="Range over 5 seeds" if off else "_nolegend_")
+        ax.bar(x - width, d.quantum, width, color=COLORS["quantum"], label="Quantum reservoir", zorder=2)
+        has_spread = (d.q_seeds > 1).to_numpy()
+        ax.vlines(x[has_spread] - width, d.q_min[has_spread], d.q_max[has_spread],
+                  color="#111111", lw=1.2, zorder=3, label="Quantum, range over reservoir seeds")
+        ax.bar(x, d.esn, width, color=COLORS["esn"], label="Classical reservoir (ESN), same size", zorder=2)
         ax.bar(x + width, d.raw, width, color=COLORS["raw"], label="Ridge on the same inputs", zorder=2)
         span = 0.012 * (2.5 if h == 3 else 1)
         for xi, v, top in zip(x, d.quantum, d.q_max):
@@ -105,7 +101,7 @@ def main():
             ax.text(1.005, v, f" {'Persistence' if name == 'persistence' else 'FBP'} {v:.3f}",
                     va="center", fontsize=10, color=COLORS[name], transform=ax.get_yaxis_transform())
         low = min(d[["quantum", "esn", "raw"]].min().min(), refs["fbp", h])
-        high = max(d[["quantum", "esn", "raw", "q_max", "e_max"]].max().max(), refs["persistence", h])
+        high = max(d[["quantum", "esn", "raw", "q_max"]].max().max(), refs["persistence", h])
         pad = 0.08 * (high - low)
         ax.set_ylim(low - pad, high + (4.0 if h == 1 else 2.0) * pad)
         ax.set_xlim(-0.6, len(order) - 0.4)
@@ -124,15 +120,13 @@ def main():
         axes[0].text(idx.to_numpy().mean(), hi - 0.03 * (hi - lo), name, ha="center", va="top",
                      fontsize=11, fontweight="bold", color="#333333")
     handles, labels = axes[0].get_legend_handles_labels()
-    order_idx = [labels.index(k) for k in ("Quantum reservoir", "Range over 5 seeds",
+    order_idx = [labels.index(k) for k in ("Quantum reservoir", "Quantum, range over reservoir seeds",
                                            "Classical reservoir (ESN), same size", "Ridge on the same inputs",
                                            "Persistence", "FBP physics")]
     handles, labels = [handles[i] for i in order_idx], [labels[i] for i in order_idx]
     fig.legend(handles, labels, loc="lower center", ncol=3, fontsize=10.5, bbox_to_anchor=(0.5, 0.0))
-    fig.text(0.08, 0.075, "Quantum and ESN bars: 5-seed mean of the setting with the best seed-mean 2022 MAE "
-             "(3 settings each). Hatched: one seed, untuned ESN.\n"
-             "* assumes a perfect weather forecast (observed regional weather; the fire's own "
-             "hotspots removed). Bars start above zero so small gaps are visible.",
+    fig.text(0.08, 0.085, "* assumes a perfect weather forecast (observed regional weather; the fire's own "
+             "hotspots removed).\nBars start above zero so small gaps are visible.",
              fontsize=9.5, color="#555555")
     fig.subplots_adjust(left=0.08, right=0.86, top=0.95, bottom=0.22, hspace=0.2)
     FIG.mkdir(exist_ok=True)
