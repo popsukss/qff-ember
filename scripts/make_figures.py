@@ -218,7 +218,7 @@ def e8_map(case, predictions, fire, xy, lat0, lon0, tx, ty, distance):
     for i, line in enumerate(lines):
         lon, lat = line.xy
         ax.plot(*local_xy(lon, lat, lat0, lon0), color="#777777", lw=1.2,
-                label="Official final perimeter (season end)" if i == 0 else None, zorder=1)
+                label="CWFIS final outline (season end)" if i == 0 else None, zorder=1)
     keep = fire.rep_date.dt.tz_convert("UTC").dt.tz_localize(None).lt(END + pd.Timedelta(days=1))
     ax.scatter(xy[keep, 0], xy[keep, 1], s=4, c="#999999", alpha=0.18, linewidths=0,
                label="Hotspot detections through 20 Aug", zorder=2, rasterized=True)
@@ -248,7 +248,7 @@ def e8_map(case, predictions, fire, xy, lat0, lon0, tx, ty, distance):
     ax.grid(alpha=0.18)
     ax.margins(0.12)
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), fontsize=11)
-    fig.text(0.07, 0.035, "Observed outlines use dated hotspots; the official final perimeter is a season-end spatial reference.\n"
+    fig.text(0.07, 0.035, "Observed outlines use dated hotspots; the CWFIS final outline is a season-end reference built from buffered hotspots.\n"
              "All layers use the same fire-centred local km frame. Forecasts add clipped nonnegative advances to the origin radii.",
              fontsize=10, color="#444444")
     fig.subplots_adjust(left=0.08, right=0.66, bottom=0.14, top=0.9)

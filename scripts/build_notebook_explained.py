@@ -119,7 +119,7 @@ def build_notebook():
         |---|---|---|---|
         | E1 | 2023 test scores | E7 | reservoir + raw inputs |
         | E3 | settings search (2022) | E8 | Yellowknife distance |
-        | E6 | real `ibm_fez` run | E10 | rebuilt shape vs official perimeter |
+        | E6 | real `ibm_fez` run | E10 | rebuilt shape vs CWFIS outline |
 
         Robustness checks (E2 wind, E4 seeds, E5 shots, E9 missing days) are saved in `results/`, not shown here.
 
@@ -225,7 +225,7 @@ def build_notebook():
     markdown("""
         ### E10: does the rebuilt shape match the real fire?
 
-        IoU of each 2023 fire's final shape vs the official perimeter (median over fires).
+        IoU of each 2023 fire's final shape vs the CWFIS season-end outline (buffered hotspots; median over fires).
 
         | Shape | Meaning |
         |---|---|
@@ -505,7 +505,7 @@ def build_notebook():
     markdown("""
         ## ZF015 / Yellowknife case
 
-        ~20,000 people evacuated, August 2023. Map: rebuilt outlines, forecasts, official perimeter.
+        ~20,000 people evacuated, August 2023. Map: rebuilt outlines, forecasts, CWFIS season-end outline.
 
         Town lies in sector 3 (SE), but the closest fire approach is the south lobe, sector 4,
         ~25 km. Arrival-time estimates (constant speed) give 38–1,355 days → not reported.
@@ -523,8 +523,9 @@ def build_notebook():
         - FBP: lowest MAE. Persistence: best IoU. Growing sectors: learned models win.
         - Beats persistence only at +72 h.
         - Real hardware within ~0.02 km of exact (one fire).
-        - Limits: one hardware case · 30 km/day cap can merge fires · no fuel-type input ·
-          375 m–1 km satellite pixels.
+        - More qubits (post-hoc): 10 q ties ridge on 2022 and slightly beats tuned ESN; needs a perfect weather forecast.
+        - Limits: one hardware case · no forecast for a fire's first 2 days · 30 km/day cap can merge fires ·
+          no fuel-type input (base model) · 375 m–1 km satellite pixels.
     """)
     markdown("""
         ### Reproduce
@@ -537,7 +538,9 @@ def build_notebook():
         3. `scripts/run_u5b.py`
         4. `scripts/make_figures.py`
         5. `scripts/e6_hardware.py`
-        6. `scripts/build_notebook_explained.py` (this notebook)
+        6. `scripts/e13_build_drivers.py` (terrain, fuel, weather inputs for the more-qubit versions)
+        7. `scripts/e14_fair_baselines.py`, then `scripts/plot_qubit_comparison.py`
+        8. `scripts/build_notebook_explained.py` (this notebook)
     """)
     return nbformat.v4.new_notebook(cells=cells, metadata={
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},

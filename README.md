@@ -206,6 +206,9 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
    .venv/bin/python -I scripts/run_u5b.py           # shot-count and missing-data checks; hardware case file
    .venv/bin/python -I scripts/make_figures.py      # figures/ and the Yellowknife map
    .venv/bin/python -I scripts/e6_hardware.py       # hardware comparison from the saved hardware results
+   .venv/bin/python -I scripts/e13_build_drivers.py # terrain, fuel and weather inputs for the larger versions
+   .venv/bin/python -I scripts/e14_fair_baselines.py   # 5, 7 and 10 qubits vs ESN and ridge, 5 seeds each
+   .venv/bin/python -I scripts/plot_qubit_comparison.py # figures/qubit_comparison.png
    .venv/bin/python -I scripts/build_notebook_explained.py   # notebooks/ember_explained.ipynb
    .venv/bin/python -m pytest -q                    # tests
    ```
