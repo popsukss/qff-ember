@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Bar chart: the submitted 5-qubit model against every larger version we tried.
+"""Bar chart: the submitted 5-qubit model against the larger versions that add information.
 
 All numbers are 2022 validation MAE, read from saved result tables (no simulation):
-  5 qubits (submitted) and copies of its 5 inputs on 8-15 qubits   E11b
-  16-qubit ring of slices                                          E12
+  5 qubits (submitted)                                             E11b
+  16-qubit ring of slices (adds the neighbouring slices)           E12
   7 qubits (+ terrain, fuel) and 10 qubits (+ future weather)      E13
+Larger circuits that only copy the same 5 inputs (E11, 8-15 qubits) are left out.
 Each quantum bar uses the frozen reservoir seed (7); its thin line spans the
 other reservoir seeds where they were run. Next to it are the classical
 reservoir (ESN) with as many units as the quantum model has features, and
@@ -92,10 +93,11 @@ def main():
     plt.rcParams.update({"font.size": 12, "axes.titlesize": 14, "axes.spines.top": False,
                          "axes.spines.right": False, "legend.frameon": False})
     table = pd.DataFrame(tiled_rows() + ring_rows() + driver_rows())
+    table = table[table.group != "5 inputs, copied"].reset_index(drop=True)
     refs = references()
     order = table.drop_duplicates("label")[["label", "group"]].reset_index(drop=True)
 
-    fig, axes = plt.subplots(2, 1, figsize=(16, 10), sharex=True)
+    fig, axes = plt.subplots(2, 1, figsize=(11, 10), sharex=True)
     x = np.arange(len(order))
     width = 0.26
     for ax, h in zip(axes, LEADS):
@@ -131,8 +133,8 @@ def main():
                 ax.axvline(i - 0.5, color="#999999", lw=1, zorder=1)
     axes[1].set_xticks(x, order.label)
     axes[1].set_xlabel("Number of qubits")
-    for group, name in (("submitted", "Submitted"), ("5 inputs, copied", "Same 5 inputs, copied onto more qubits"),
-                        ("neighbour slices", "Neighbour slices"), ("new inputs", "New inputs")):
+    for group, name in (("submitted", "Submitted"), ("neighbour slices", "Neighbour slices"),
+                        ("new inputs", "New inputs")):
         idx = order.index[order.group == group]
         lo, hi = axes[0].get_ylim()
         axes[0].text(idx.to_numpy().mean(), hi - 0.03 * (hi - lo), name, ha="center", va="top",
@@ -142,11 +144,11 @@ def main():
                                            "Classical reservoir (ESN), same size", "Ridge on the same inputs",
                                            "Persistence", "FBP physics")]
     handles, labels = [handles[i] for i in order_idx], [labels[i] for i in order_idx]
-    fig.legend(handles, labels, loc="lower center", ncol=6, fontsize=10.5, bbox_to_anchor=(0.5, 0.0))
-    fig.text(0.06, 0.055, "* assumes a perfect weather forecast (observed regional weather; the fire's own "
-             "hotspots removed). Bars start above zero so small gaps are visible.",
+    fig.legend(handles, labels, loc="lower center", ncol=3, fontsize=10.5, bbox_to_anchor=(0.5, 0.0))
+    fig.text(0.08, 0.085, "* assumes a perfect weather forecast (observed regional weather; the fire's own "
+             "hotspots removed).\nBars start above zero so small gaps are visible.",
              fontsize=9.5, color="#555555")
-    fig.subplots_adjust(left=0.06, right=0.9, top=0.95, bottom=0.19, hspace=0.2)
+    fig.subplots_adjust(left=0.08, right=0.86, top=0.95, bottom=0.22, hspace=0.2)
     FIG.mkdir(exist_ok=True)
     fig.savefig(FIG / "qubit_comparison.png", dpi=200, facecolor="white")
     table.to_csv(RES / "qubit_comparison_val.csv", index=False)
