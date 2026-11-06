@@ -382,12 +382,61 @@ def build_notebook():
         - Best MAE: `fbp`. Best IoU: `persistence` (most sectors don't move). Growing sectors: learned models win.
     """)
 
+    markdown(r"""
+        ## More qubits and inputs (after freezing)
+
+        Exploratory, after the study was frozen. Chart: 2022 validation.
+
+        | Version | Adds |
+        |---|---|
+        | 16 qubits (ring) | 2 qubits per sector, neighbouring sectors linked (one seed; optimistic: γ picked on val) |
+        | 7 qubits | upslope + conifer share |
+        | 10 qubits | + future regional wind, ISI, rain\* |
+
+        \*Observed later weather = assumes a perfect forecast (fire's own hotspots removed).
+        Fair budget: quantum and ESN each try 3 settings × 5 seeds; best 5-seed mean on 2022 kept.
+        Bars = seed mean, lines = quantum seed range. 2023 columns are post-hoc (2023 already used above).
+    """)
+    code("""
+        show_figure("qubit_comparison.png")
+        version_labels = {"base5": "5 qubits (base)", "A7": "7 qubits (+terrain +fuel)",
+                  "B10_h": "10 qubits (+future weather)"}
+        family_names = {"qrc": "quantum", "esn": "ESN", "raw": "ridge"}
+        e14_selected = read_csv("results/e14_selected.csv")
+
+        def span(row, split):
+            mean, lo, hi = row[f"{split}_mean"], row[f"{split}_min"], row[f"{split}_max"]
+            return f"{mean:.3f}" if row.n_seeds == 1 else f"{mean:.3f} [{lo:.3f}-{hi:.3f}]"
+
+        e14_table = pd.DataFrame({"version": e14_selected.version.map(version_labels), "model": e14_selected.family.map(family_names),
+                              "lead_h": e14_selected.lead * 24, "setting": e14_selected.config,
+                              "val 2022": e14_selected.apply(span, axis=1, split="val"),
+                              "2023 (post-hoc)": e14_selected.apply(span, axis=1, split="test")})
+        print("MAE (km): mean [min-max] over 5 seeds, for the setting chosen on 2022")
+        display(e14_table.sort_values("lead_h", kind="stable").reset_index(drop=True))
+        e14_paired = read_csv("results/e14_paired.csv")
+        e14_paired = e14_paired.loc[e14_paired.split.eq("test")].assign(
+            version=lambda d: d.version.map(version_labels), lead_h=lambda d: d.lead * 24,
+            comparison=lambda d: d.model.map(family_names) + " minus " + d.reference.map(family_names))
+        print("Paired 2023 differences in seed-averaged error (km), 95% fire bootstrap; "
+              "negative favours the first model.")
+        display(e14_paired[["version", "lead_h", "comparison", "diff", "lo", "hi"]].reset_index(drop=True))
+    """)
+    markdown("""
+        **Takeaway:** ridge on raw inputs is best or within 0.001 km of best everywhere. 5 q and 7 q: quantum loses
+        to ridge and tuned ESN (both leads, both years). 10 q: ties ridge on 2022; on 2023 loses
+        to ridge (+0.006 / +0.027 km) and beats ESN by a little (−0.003 / −0.008 km), the only
+        quantum edge left. Seed spread is wide (10 q, 2022, +24 h: 0.276–0.307 km). Both picked
+        the smallest setting tried (γ = π/4, input scale 0.3); a wider grid might move them.
+        Perfect forecasts don't exist → 10 q is a best case.
+    """)
+
     markdown("""
         ## Controls
 
         | ID | Question | Answer |
         |---|---|---|
-        | E4 | Lucky random circuit? | No: 5 seeds vary by ~0.01–0.02 km (range bars in the qubit chart below) |
+        | E4 | Lucky random circuit? | No: 5 seeds vary by ~0.01–0.02 km (range lines in the qubit chart above) |
         | E4 | Why CZ, not random gates (`haar`)? | Same MAE (0.361 / 0.946 vs 0.360 / 0.943), CZ uses 3× fewer two-qubit gates |
         | E2 | Holds by wind direction? | Yes: all miss most downwind; `qrc` ≈ `esn20` in each |
         | E5 | How many shots needed? | 100 shots → 1.21 km; 10,000 → within 0.05 km of exact |
@@ -494,55 +543,6 @@ def build_notebook():
         location = read_json("results/e8_eta.json")
         print(f"{location['town']}: {location['distance_km']:.1f} km from the fire centre, sector {location['sector']}.")
         show_figure("e8_zf015_map.png")
-    """)
-
-    markdown(r"""
-        ## More qubits and inputs (after freezing)
-
-        Exploratory, after the study was frozen. Chart: 2022 validation.
-
-        | Version | Adds |
-        |---|---|
-        | 16 qubits (ring) | 2 qubits per sector, neighbouring sectors linked (one seed; optimistic: γ picked on val) |
-        | 7 qubits | upslope + conifer share |
-        | 10 qubits | + future regional wind, ISI, rain\* |
-
-        \*Observed later weather = assumes a perfect forecast (fire's own hotspots removed).
-        Fair budget: quantum and ESN each try 3 settings × 5 seeds; best 5-seed mean on 2022 kept.
-        Bars = seed mean, lines = seed range. 2023 columns are post-hoc (2023 already used above).
-    """)
-    code("""
-        show_figure("qubit_comparison.png")
-        labels = {"base5": "5 qubits (submitted)", "A7": "7 qubits (+terrain +fuel)",
-                  "B10_h": "10 qubits (+future weather)"}
-        names = {"qrc": "quantum", "esn": "ESN", "raw": "ridge"}
-        selected = read_csv("results/e14_selected.csv")
-
-        def span(row, split):
-            mean, lo, hi = row[f"{split}_mean"], row[f"{split}_min"], row[f"{split}_max"]
-            return f"{mean:.3f}" if row.n_seeds == 1 else f"{mean:.3f} [{lo:.3f}-{hi:.3f}]"
-
-        table = pd.DataFrame({"version": selected.version.map(labels), "model": selected.family.map(names),
-                              "lead_h": selected.lead * 24, "setting": selected.config,
-                              "val 2022": selected.apply(span, axis=1, split="val"),
-                              "2023 (post-hoc)": selected.apply(span, axis=1, split="test")})
-        print("MAE (km): mean [min-max] over 5 seeds, for the setting chosen on 2022")
-        display(table.sort_values("lead_h", kind="stable").reset_index(drop=True))
-        paired = read_csv("results/e14_paired.csv")
-        paired = paired.loc[paired.split.eq("test")].assign(
-            version=lambda d: d.version.map(labels), lead_h=lambda d: d.lead * 24,
-            comparison=lambda d: d.model.map(names) + " minus " + d.reference.map(names))
-        print("Paired 2023 differences in seed-averaged error (km), 95% fire bootstrap; "
-              "negative favours the first model.")
-        display(paired[["version", "lead_h", "comparison", "diff", "lo", "hi"]].reset_index(drop=True))
-    """)
-    markdown("""
-        **Takeaway:** ridge on raw inputs is best or within 0.001 km of best everywhere. 5 q and 7 q: quantum loses
-        to ridge and tuned ESN (both leads, both years). 10 q: ties ridge on 2022; on 2023 loses
-        to ridge (+0.006 / +0.027 km) and beats ESN by a little (−0.003 / −0.008 km), the only
-        quantum edge left. Seed spread is wide (10 q, 2022, +24 h: 0.276–0.307 km). Both picked
-        the smallest setting tried (γ = π/4, input scale 0.3); a wider grid might move them.
-        Perfect forecasts don't exist → 10 q is a best case.
     """)
 
     markdown("""
