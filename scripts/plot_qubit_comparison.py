@@ -46,7 +46,7 @@ def tiled_rows():
             q = float(s.loc[s.seed == 7, "val_mae"].iloc[0])
             p = paired[(paired.n == n) & (paired.lead == h)].set_index("reference")["diff"]
             rows.append({"group": "5 inputs, copied" if n > 5 else "submitted", "qubits": int(n),
-                         "label": f"{n}" if n > 5 else "5\nsubmitted", "lead": h, "quantum": q,
+                         "label": f"{n} qubits" if n > 5 else "5 qubits\n(submitted)", "lead": h, "quantum": q,
                          "q_min": s.val_mae.min(), "q_max": s.val_mae.max(), "n_seeds": len(s),
                          "esn": q - p[f"esn_matched{n}"], "raw": q - p["raw"]})
     return rows
@@ -59,7 +59,7 @@ def ring_rows():
     for h in LEADS:
         get = lambda m: float(r[(r.model == m) & (r.lead == h)].val_mae.iloc[0])
         q = get("ring")
-        out.append({"group": "neighbour slices", "qubits": 16, "label": "16\nring", "lead": h,
+        out.append({"group": "neighbour slices", "qubits": 16, "label": "16 qubits\n(ring)", "lead": h,
                     "quantum": q, "q_min": q, "q_max": q, "n_seeds": 1,
                     "esn": get("esn_ring152"), "raw": get("raw_ring")})
     return out
@@ -71,7 +71,7 @@ def driver_rows():
     m = m[m.split == "val"]
     spread = pd.read_csv(RES / "e13_seed_spread_val.csv")
     out = []
-    for version, n, label in (("A", 7, "7\n+terrain\n+fuel"), ("B", 10, "10\n+future\nweather*")):
+    for version, n, label in (("A", 7, "7 qubits\n(+terrain +fuel)"), ("B", 10, "10 qubits\n(+future weather*)")):
         for h in LEADS:
             get = lambda name: float(m[(m.model == name) & (m.lead == h)].mae.iloc[0])
             s = spread[(spread.version == version) & (spread.lead == h)]
@@ -132,7 +132,6 @@ def main():
             if order.group[i] != order.group[i - 1]:
                 ax.axvline(i - 0.5, color="#999999", lw=1, zorder=1)
     axes[1].set_xticks(x, order.label)
-    axes[1].set_xlabel("Number of qubits")
     for group, name in (("submitted", "Submitted"), ("neighbour slices", "Neighbour slices"),
                         ("new inputs", "New inputs")):
         idx = order.index[order.group == group]
