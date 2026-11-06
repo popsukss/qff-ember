@@ -1,0 +1,30 @@
+{
+  "status": "exploratory, post-hoc; selection on val (2022) only; locked test result unchanged",
+  "encoding": "qubit i reads input i mod 5; own random gain per qubit (ChainReservoir draws)",
+  "frozen": {
+    "L": 5,
+    "gamma": 0.7853981633974483,
+    "seed": 7,
+    "input_map": [
+      "w_k",
+      "isi",
+      "dd_km",
+      "bui",
+      "rh"
+    ]
+  },
+  "qubits": [
+    5,
+    6,
+    8,
+    10,
+    12
+  ],
+  "simulate_seconds": {
+    "5": 1.7412971248850226,
+    "6": 3.82462808303535,
+    "8": 18.257823957828805,
+    "10": 86.76041404111311,
+    "12": 423.39171366696246
+  }
+}

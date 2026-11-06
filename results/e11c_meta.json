@@ -1,0 +1,25 @@
+{
+  "status": "exploratory offline dry run; no IBM contact",
+  "shots": 10000,
+  "fake_fez_seed": 0,
+  "qubits": {
+    "5": {
+      "z_features": 15,
+      "cz_per_circuit": 20,
+      "fidelity_2q": 0.9247605695757064,
+      "eps_2q": 0.0039033828523107883,
+      "isa_depth_max": 41,
+      "feature_mae_fake_vs_exact": 0.043792792845403286,
+      "seconds": 7.828446583123878
+    },
+    "10": {
+      "z_features": 55,
+      "cz_per_circuit": 45,
+      "fidelity_2q": 0.8386213864353821,
+      "eps_2q": 0.0039033828523107883,
+      "isa_depth_max": 46,
+      "feature_mae_fake_vs_exact": 0.04654912709347108,
+      "seconds": 139.3549042090308
+    }
+  }
+}
