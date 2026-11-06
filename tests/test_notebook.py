@@ -10,17 +10,16 @@ import nbformat
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-NOTEBOOKS = [ROOT / "notebooks" / "ember.ipynb", ROOT / "notebooks" / "ember_explained.ipynb"]
+NOTEBOOKS = [ROOT / "notebooks" / "ember_explained.ipynb"]
 HEADINGS = [
     "# Ember",
     "## Data and sector geometry",
     "## Quantum reservoir",
     "## Baselines",
     "## Test 2023 results",
-    "## Controls",
+    "## More qubits and inputs (after freezing)",
     "## Real hardware (E6)",
     "## ZF015 / Yellowknife case",
-    "## More qubits and inputs (after freezing)",
     "## Conclusions and limits",
 ]
 
@@ -54,12 +53,7 @@ def test_notebook_sources_and_outputs(notebook):
 def test_notebook_sections_in_order(notebook):
     headings = [line for cell in notebook.cells if cell.cell_type == "markdown"
                 for line in cell.source.splitlines() if line.startswith(("# ", "## "))]
-    expected = list(HEADINGS)
-    if notebook.path.stem == "ember_explained":  # no Controls; multi-qubit results right after the test results
-        expected.remove("## Controls")
-        expected.remove("## More qubits and inputs (after freezing)")
-        expected.insert(expected.index("## Real hardware (E6)"), "## More qubits and inputs (after freezing)")
-    assert headings == expected
+    assert headings == HEADINGS
 
 
 def test_e6_recomputation_differences_printed(notebook):

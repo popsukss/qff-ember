@@ -167,8 +167,7 @@ hardware is better.
 ## Try it
 
 The notebook `notebooks/ember_explained.ipynb` walks through the whole project, with short
-explanations at each step (`notebooks/ember.ipynb` has the same results with less text).
-**Both run on their own:** you only need one file. The saved results, hardware measurements and figures are stored
+explanations at each step. **It runs on its own:** you only need this one file. The saved results, hardware measurements and figures are stored
 inside it, so it needs no other files, no data download and no IBM account. Install four
 packages, then run all cells:
 
@@ -178,13 +177,12 @@ pip install numpy==2.5.4 pandas==3.1.1 qiskit==2.6.1 ipython
 
 You can also just open it: the outputs are already saved in it.
 
-To rebuild the notebooks from this repository (each is then run in an empty folder to check
+To rebuild the notebook from this repository (it is then run in an empty folder to check
 that it needs no other files):
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python -I scripts/build_notebook_explained.py   # notebooks/ember_explained.ipynb
-.venv/bin/python -I scripts/build_notebook.py             # notebooks/ember.ipynb
 ```
 
 ## Rebuild everything from the raw data
@@ -209,7 +207,6 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
    .venv/bin/python -I scripts/make_figures.py      # figures/ and the Yellowknife map
    .venv/bin/python -I scripts/e6_hardware.py       # hardware comparison from the saved hardware results
    .venv/bin/python -I scripts/build_notebook_explained.py   # notebooks/ember_explained.ipynb
-   .venv/bin/python -I scripts/build_notebook.py             # notebooks/ember.ipynb
    .venv/bin/python -m pytest -q                    # tests
    ```
 
@@ -222,7 +219,7 @@ tests/          automatic tests
 results/        result tables (CSV/JSON)
 figures/        result charts and the Yellowknife map
 hardware/       the Yellowknife hardware case, job log and measured hardware results
-notebooks/      ember_explained.ipynb (main walkthrough), ember.ipynb (short version)
+notebooks/      ember_explained.ipynb (walkthrough)
 slides/         presentation
 docs/           full method and results (LaTeX)
 config.yaml     settings, locked once the 2022 choices were made

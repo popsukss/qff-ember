@@ -538,7 +538,7 @@ def build_notebook():
         3. `scripts/run_u5b.py`
         4. `scripts/make_figures.py`
         5. `scripts/e6_hardware.py`
-        6. `scripts/build_notebook_explained.py` (this notebook) and `scripts/build_notebook.py` (short version)
+        6. `scripts/build_notebook_explained.py` (this notebook)
     """)
     return nbformat.v4.new_notebook(cells=cells, metadata={
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
