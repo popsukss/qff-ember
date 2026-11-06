@@ -31,12 +31,11 @@ EMBEDDED = [
     "results/fire_counts.json", "results/e10_2023.json", "results/e3_val.csv",
     "results/frozen_config.json",
     "results/metrics.csv", "results/qrc_comparisons.csv",
-    "results/e2_wind.csv", "results/e5_shots.csv", "results/e9_sparse.csv",
     "results/e6_meta.json", "results/e6_predictions.csv", "results/e6_hardware.csv",
     "results/qrc_z_readout.json", "results/e8_eta.json",
     "hardware/e6_job_metrics.json", "hardware/jobs.json",
     "hardware/e6_hw_features.npy", "hardware/zf015_case.npz",
-    "figures/e1_test_mae.png", "figures/e2_wind.png",
+    "figures/e1_test_mae.png",
     "figures/e6_hardware.png", "figures/e8_zf015_map.png",
     "figures/qubit_comparison.png", "results/e14_metrics.csv", "results/e14_selected.csv",
     "results/e14_paired.csv", "results/e14_meta.json",
@@ -118,11 +117,11 @@ def build_notebook():
 
         | ID | Tests | ID | Tests |
         |---|---|---|---|
-        | E1 | 2023 test scores | E6 | real `ibm_fez` run |
-        | E2 | by wind direction | E7 | reservoir + raw inputs |
+        | E1 | 2023 test scores | E7 | reservoir + raw inputs |
         | E3 | settings search (2022) | E8 | Yellowknife distance |
-        | E4 | random seeds | E9 | missing satellite days |
-        | E5 | shots and noise | E10 | rebuilt shape vs official perimeter |
+        | E6 | real `ibm_fez` run | E10 | rebuilt shape vs official perimeter |
+
+        Robustness checks (E2 wind, E4 seeds, E5 shots, E9 missing days) are saved in `results/`, not shown here.
 
         **Words**
 
@@ -358,7 +357,7 @@ def build_notebook():
     """)
     code("""
         metrics = read_csv("results/metrics.csv")
-        # haar (random gates instead of CZ) is a design control: see Controls.
+        # haar (random gates instead of CZ) is a design check, left out here.
         test = metrics.loc[metrics.split.eq("test") & metrics.model.ne("haar")].copy()
         result_table = test[["model", "lead", "skill", "iou", "mae_growing"]].copy()
         result_table["lead"] *= 24  # days -> hours
@@ -432,37 +431,10 @@ def build_notebook():
     """)
 
     markdown("""
-        ## Controls
-
-        | ID | Question | Answer |
-        |---|---|---|
-        | E4 | Lucky random circuit? | No: 5 seeds vary by ~0.01–0.02 km (range lines in the qubit chart above) |
-        | E4 | Why CZ, not random gates (`haar`)? | Same MAE (0.361 / 0.946 vs 0.360 / 0.943), CZ uses 3× fewer two-qubit gates |
-        | E2 | Holds by wind direction? | Yes: all miss most downwind; `qrc` ≈ `esn20` in each |
-        | E5 | How many shots needed? | 100 shots → 1.21 km; 10,000 → within 0.05 km of exact |
-        | E9 | Missing satellite days? | Degrades like `esn20`, less than persistence |
-    """)
-    code("""
-        wind = read_csv("results/e2_wind.csv")
-        print("E2 — test MAE by wind bin (km); lead is in days")
-        display(wind.pivot(index=["model", "wind_bin"], columns="lead", values="mae"))
-        show_figure("e2_wind.png")
-    """)
-    code("""
-        shots = read_csv("results/e5_shots.csv")
-        print("E5 — sampled / exact MAE (km) on the same subset; lead is in days")
-        display(shots.pivot(index=["shots", "noise"], columns="lead", values=["mae", "mae_exact", "n_rows"]))
-    """)
-    code("""
-        sparse = read_csv("results/e9_sparse.csv")
-        print("E9 — test MAE (km) as hotspot days are removed; lead is in days")
-        display(sparse.pivot(index=["drop_frac", "model"], columns="lead", values="mae"))
-    """)
-
-    markdown("""
         ## Real hardware (E6)
 
         Yellowknife fire, `ibm_fez`: 88 circuits × 10,000 shots, Z basis → 15 Z/ZZ features (saved).
+        Why 10,000 shots: in simulation, +24 h MAE 0.41 km vs 0.36 exact (100 shots: 1.21 km).
 
         **No IBM connection here.** The next cells replay it:
         1. Job record.
@@ -551,7 +523,6 @@ def build_notebook():
         - Quantum ≈ classical reservoirs; slightly behind raw ridge. No quantum advantage.
         - FBP: lowest MAE. Persistence: best IoU. Growing sectors: learned models win.
         - Beats persistence only at +72 h.
-        - Robust to seeds (E4), wind (E2), missing days (E9).
         - Real hardware within ~0.02 km of exact (one fire).
         - Limits: one hardware case · 30 km/day cap can merge fires · no fuel-type input ·
           375 m–1 km satellite pixels.

@@ -55,9 +55,10 @@ def test_notebook_sections_in_order(notebook):
     headings = [line for cell in notebook.cells if cell.cell_type == "markdown"
                 for line in cell.source.splitlines() if line.startswith(("# ", "## "))]
     expected = list(HEADINGS)
-    if notebook.path.stem == "ember_explained":  # multi-qubit results sit right after the test results
+    if notebook.path.stem == "ember_explained":  # no Controls; multi-qubit results right after the test results
+        expected.remove("## Controls")
         expected.remove("## More qubits and inputs (after freezing)")
-        expected.insert(expected.index("## Controls"), "## More qubits and inputs (after freezing)")
+        expected.insert(expected.index("## Real hardware (E6)"), "## More qubits and inputs (after freezing)")
     assert headings == expected
 
 
