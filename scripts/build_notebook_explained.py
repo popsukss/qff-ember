@@ -344,7 +344,6 @@ def build_notebook():
         | `fbp` | physics spread rate × burn time × wind share × $h$ | knows fuel type; we don't |
         | `raw` | ridge on raw inputs, no circuit | does the circuit help? |
         | `esn5`, `esn20` | classical random network (5 / 20 units) + ridge | same idea, no qubits |
-        | `haar` | random two-qubit gates instead of CZ | does our design matter? |
         | `qrc_raw` (E7) | reservoir features + raw inputs | do they combine? |
     """)
 
@@ -359,7 +358,8 @@ def build_notebook():
     """)
     code("""
         metrics = read_csv("results/metrics.csv")
-        test = metrics.loc[metrics.split.eq("test")].copy()
+        # haar (random gates instead of CZ) is a design control: see Controls.
+        test = metrics.loc[metrics.split.eq("test") & metrics.model.ne("haar")].copy()
         result_table = test[["model", "lead", "skill", "iou", "mae_growing"]].copy()
         result_table["lead"] *= 24  # days -> hours
         result_table = result_table.rename(columns={"lead": "lead_h"})
@@ -376,7 +376,7 @@ def build_notebook():
     """)
     markdown("""
         **Takeaways**
-        - `qrc` 0.360 / 0.943 km ≈ `esn20`, `haar`.
+        - `qrc` 0.360 / 0.943 km ≈ `esn20` 0.350 / 0.934.
         - `raw` ridge beats `qrc` by 0.01–0.02 km (clear).
         - `qrc` beats persistence only at +72 h.
         - Best MAE: `fbp`. Best IoU: `persistence` (most sectors don't move). Growing sectors: learned models win.
@@ -388,6 +388,7 @@ def build_notebook():
         | ID | Question | Answer |
         |---|---|---|
         | E4 | Lucky random circuit? | No: seeds vary by ~0.01–0.02 km |
+        | E4 | Why CZ, not random gates (`haar`)? | Same MAE (0.361 / 0.946 vs 0.360 / 0.943), CZ uses 3× fewer two-qubit gates |
         | E2 | Holds by wind direction? | Yes: all miss most downwind; `qrc` ≈ `esn20` in each |
         | E5 | How many shots needed? | 100 shots → 1.21 km; 10,000 → within 0.05 km of exact |
         | E9 | Missing satellite days? | Degrades like `esn20`, less than persistence |
