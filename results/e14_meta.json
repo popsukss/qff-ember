@@ -1,0 +1,115 @@
+{
+  "status": "exploratory; configs and ridge penalty chosen on 2022 val; 2023 is a post-hoc second look (already used by the locked study)",
+  "versions": {
+    "base5": [
+      [
+        "w_k",
+        "isi",
+        "dd_km",
+        "bui",
+        "rh"
+      ],
+      [
+        "w_k",
+        "isi",
+        "dd_km",
+        "bui",
+        "rh"
+      ]
+    ],
+    "A7": [
+      [
+        "w_k",
+        "isi",
+        "dd_km",
+        "bui",
+        "rh",
+        "up_k",
+        "conif_k"
+      ],
+      [
+        "w_k",
+        "isi",
+        "dd_km",
+        "bui",
+        "rh",
+        "up_k",
+        "conif_k"
+      ]
+    ],
+    "B10_h": [
+      [
+        "w_k",
+        "isi",
+        "dd_km",
+        "bui",
+        "rh",
+        "up_k",
+        "conif_k",
+        "fw_1",
+        "fisi_1",
+        "fpcp_1"
+      ],
+      [
+        "w_k",
+        "isi",
+        "dd_km",
+        "bui",
+        "rh",
+        "up_k",
+        "conif_k",
+        "fw_3",
+        "fisi_3",
+        "fpcp_3"
+      ]
+    ]
+  },
+  "qrc": {
+    "gamma_grid": [
+      0.7853981633974483,
+      1.5707963267948966,
+      2.356194490192345
+    ],
+    "seeds": [
+      7,
+      11,
+      13,
+      17,
+      19
+    ],
+    "L": 5
+  },
+  "esn": {
+    "input_scale_grid": [
+      0.3,
+      1.0,
+      3.0
+    ],
+    "spectral_radius": 0.9,
+    "leak": 1.0,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "units": "as many as the quantum model has features"
+  },
+  "raw": "ridge on the flattened window, one config",
+  "lambda_grid": [
+    1e-06,
+    1e-05,
+    0.0001,
+    0.001,
+    0.01,
+    0.1,
+    1.0,
+    10.0,
+    100.0
+  ],
+  "selection": "per family, version and lead: config with the lowest seed-mean 2022 val MAE (lambda chosen per fit by select_lambda on 2022 val)",
+  "paired": "fire-level bootstrap of per-row seed-averaged absolute-error differences (selected configs), n_boot=1000, seed=0",
+  "timestamp_utc": "2026-11-06T20:00:42.875178+00:00",
+  "runtime_s": 715.9
+}

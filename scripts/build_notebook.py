@@ -37,7 +37,8 @@ EMBEDDED = [
     "hardware/e6_hw_features.npy", "hardware/zf015_case.npz",
     "figures/e1_test_mae.png", "figures/e4_seeds.png", "figures/e2_wind.png",
     "figures/e6_hardware.png", "figures/e8_zf015_map.png",
-    "figures/qubit_comparison.png", "results/e13_metrics.csv", "results/e13_paired.csv",
+    "figures/qubit_comparison.png", "results/e14_metrics.csv", "results/e14_selected.csv",
+    "results/e14_paired.csv", "results/e14_meta.json",
 ]
 
 
@@ -370,38 +371,52 @@ def build_notebook():
           \\*This uses the weather that was later observed, so it assumes a perfect weather
           forecast; the fire's own hotspots are removed from it.
 
-        Each group compares the quantum reservoir (seed 7; the thin line spans other seeds, where run), a
-        classical reservoir (ESN) of the same size, and ridge on the same inputs. The table
-        below gives the 2023 test scores. 2023 had already been used by the frozen study, so
-        these are a post-hoc second look, not a new test.
+        Each group compares the quantum reservoir, a classical reservoir (ESN) of the same
+        size, and ridge on the same inputs. To make the comparison fair, the quantum and
+        classical reservoirs get the same budget: 3 settings each (quantum: rotation scale
+        γ = π/4, π/2, 3π/4; ESN: input scale 0.3, 1, 3), each run with 5 random seeds.
+        The setting with the best 5-seed mean on 2022 is kept, and its seed mean is reported;
+        the thin lines span the seeds. The 16-qubit ring was run once, with γ picked on the
+        same 2022 fires, so its bar is optimistic. The tables below also give 2023 scores.
+        2023 had already been used by the frozen study, so these are a post-hoc second look,
+        not a new test.
     """)
     code("""
         show_figure("qubit_comparison.png")
-        extra = read_csv("results/e13_metrics.csv")
-        extra = extra.loc[extra.split.eq("test")]
-        reference = metrics.loc[metrics.split.eq("test") & metrics.model.isin(["fbp", "persistence"])]
-        rows = []
-        for version, label in (("base", "5 qubits (submitted)"), ("A", "7 qubits (+terrain +fuel)"),
-                               ("B", "10 qubits (+future weather)")):
-            for kind, name in (("qrc", "quantum"), ("esn", "ESN"), ("raw", "ridge")):
-                for row in extra.loc[extra.model.eq(f"{kind}_{version}")].itertuples():
-                    rows.append({"version": label, "model": name, "lead_h": row.lead * 24, "mae": row.mae})
-        for row in reference.itertuples():
-            rows.append({"version": "reference", "model": row.model, "lead_h": row.lead * 24, "mae": row.mae})
-        print("2023 test MAE (km), post-hoc")
-        display(pd.DataFrame(rows).pivot_table(index=["version", "model"], columns="lead_h",
-                                               values="mae", sort=False))
-        paired = read_csv("results/e13_paired.csv")
-        paired = paired.loc[paired.split.eq("test")].assign(lead_h=lambda d: d.lead * 24)
-        print("Paired 2023 MAE differences: larger quantum model minus reference; negative favours it.")
-        display(paired[["model", "reference", "lead_h", "diff", "lo", "hi"]].reset_index(drop=True))
+        labels = {"base5": "5 qubits (submitted)", "A7": "7 qubits (+terrain +fuel)",
+                  "B10_h": "10 qubits (+future weather)"}
+        names = {"qrc": "quantum", "esn": "ESN", "raw": "ridge"}
+        selected = read_csv("results/e14_selected.csv")
+
+        def span(row, split):
+            mean, lo, hi = row[f"{split}_mean"], row[f"{split}_min"], row[f"{split}_max"]
+            return f"{mean:.3f}" if row.n_seeds == 1 else f"{mean:.3f} [{lo:.3f}-{hi:.3f}]"
+
+        table = pd.DataFrame({"version": selected.version.map(labels), "model": selected.family.map(names),
+                              "lead_h": selected.lead * 24, "setting": selected.config,
+                              "val 2022": selected.apply(span, axis=1, split="val"),
+                              "2023 (post-hoc)": selected.apply(span, axis=1, split="test")})
+        print("MAE (km): mean [min-max] over 5 seeds, for the setting chosen on 2022")
+        display(table.sort_values("lead_h", kind="stable").reset_index(drop=True))
+        paired = read_csv("results/e14_paired.csv")
+        paired = paired.loc[paired.split.eq("test")].assign(
+            version=lambda d: d.version.map(labels), lead_h=lambda d: d.lead * 24,
+            comparison=lambda d: d.model.map(names) + " minus " + d.reference.map(names))
+        print("Paired 2023 differences in seed-averaged error (km), 95% fire bootstrap; "
+              "negative favours the first model.")
+        display(paired[["version", "lead_h", "comparison", "diff", "lo", "hi"]].reset_index(drop=True))
     """)
     markdown("""
-        Future weather gives the only clear gain: the 10-qubit reservoir beats the submitted
-        5-qubit one on 2023 (paired differences below 0). Ridge on the same 10 inputs still
-        does better (paired differences above 0), so adding qubits does not close the gap to
-        ridge. Terrain and fuel do not help the quantum reservoir. A perfect weather forecast
-        is not available in practice, so the 10-qubit result is a best case.
+        With an equal tuning budget and 5 seeds each, ridge on the raw inputs is best or within
+        0.001 km of the best everywhere. At 5 and 7 qubits the quantum reservoir is worse than both ridge and the
+        tuned ESN at both leads, on 2022 and 2023 (every interval excludes 0). At 10 qubits
+        with future weather it ties ridge on 2022 and beats the ESN; on 2023 it is worse than
+        ridge (+0.006 km at +24 h, +0.027 km at +72 h) and slightly better than the ESN
+        (-0.003 and -0.008 km). That small edge over a tuned ESN is the only quantum gain left.
+        Quantum scores vary a lot with the seed (10 qubits, 2022, +24 h: 0.276 to 0.307 km).
+        Both reservoirs picked the smallest setting tried (γ = π/4, input scale 0.3), so a
+        wider grid might move them. A perfect weather forecast is not available in practice,
+        so the 10-qubit result is a best case.
     """)
 
     markdown("""

@@ -2,14 +2,14 @@
 """Bar chart: the submitted 5-qubit model against the larger versions that add information.
 
 All numbers are 2022 validation MAE, read from saved result tables (no simulation):
-  5 qubits (submitted)                                             E11b
-  16-qubit ring of slices (adds the neighbouring slices)           E12
-  7 qubits (+ terrain, fuel) and 10 qubits (+ future weather)      E13
+  5 qubits (submitted), 7 qubits (+ terrain, fuel), 10 qubits (+ future weather)   E14
+  16-qubit ring of slices (adds the neighbouring slices)                           E12
+E14 gives the quantum reservoir and the classical reservoir (ESN) the same tuning
+budget (3 configs each, chosen by seed-mean 2022 MAE) and averages 5 seeds; the
+bars are seed means and the thin lines span the seeds. Ridge on the same inputs is
+deterministic. The E12 ring is one seed, and its gamma was picked on the same 2022
+fires it is scored on, so it is marked optimistic.
 Larger circuits that only copy the same 5 inputs (E11, 8-15 qubits) are left out.
-Each quantum bar uses the frozen reservoir seed (7); its thin line spans the
-other reservoir seeds where they were run. Next to it are the classical
-reservoir (ESN) with as many units as the quantum model has features, and
-ridge regression on the same inputs.
 
 Output: figures/qubit_comparison.png and results/qubit_comparison_val.csv
 """
@@ -32,53 +32,34 @@ COLORS = {"quantum": "#0072B2", "esn": "#009E73", "raw": "#CC79A7",
 LEADS = (1, 3)
 
 
-def tiled_rows():
-    """5 and 8-15 qubits: qubit i reads input i mod 5 (E11b)."""
-    spread = pd.concat([pd.read_csv(RES / "e11b_seed_spread.csv"),
-                        pd.read_csv(RES / "e11b_seed_spread_11to15.csv")]).drop_duplicates()
-    paired = pd.concat([pd.read_csv(RES / "e11b_paired_val.csv"),
-                        pd.read_csv(RES / "e11b_paired_val_11to15.csv")]).drop_duplicates(
-        subset=["n", "reference", "lead"])
-    rows = []
-    for n in sorted(spread.n.unique()):
-        for h in LEADS:
-            s = spread[(spread.n == n) & (spread.lead == h)]
-            q = float(s.loc[s.seed == 7, "val_mae"].iloc[0])
-            p = paired[(paired.n == n) & (paired.lead == h)].set_index("reference")["diff"]
-            rows.append({"group": "5 inputs, copied" if n > 5 else "submitted", "qubits": int(n),
-                         "label": f"{n} qubits" if n > 5 else "5 qubits\n(submitted)", "lead": h, "quantum": q,
-                         "q_min": s.val_mae.min(), "q_max": s.val_mae.max(), "n_seeds": len(s),
-                         "esn": q - p[f"esn_matched{n}"], "raw": q - p["raw"]})
-    return rows
-
-
 def ring_rows():
-    """16-qubit ring: 2 qubits per slice, all 8 slices linked (E12)."""
+    """16-qubit ring: 2 qubits per slice, all 8 slices linked (E12). One seed; gamma picked on val."""
     r = pd.read_csv(RES / "e12_ring_val_gamma.csv")
     out = []
     for h in LEADS:
         get = lambda m: float(r[(r.model == m) & (r.lead == h)].val_mae.iloc[0])
-        q = get("ring")
-        out.append({"group": "neighbour slices", "qubits": 16, "label": "16 qubits\n(ring)", "lead": h,
-                    "quantum": q, "q_min": q, "q_max": q, "n_seeds": 1,
-                    "esn": get("esn_ring152"), "raw": get("raw_ring")})
+        q, e = get("ring"), get("esn_ring152")
+        out.append({"group": "neighbour slices", "qubits": 16, "label": "16 qubits (ring)\noptimistic: γ picked on val",
+                    "lead": h, "quantum": q, "q_min": q, "q_max": q, "q_seeds": 1, "q_config": "gamma=0.25pi",
+                    "esn": e, "e_min": e, "e_max": e, "e_seeds": 1, "e_config": "input_scale=1.0",
+                    "raw": get("raw_ring"), "source": "E12"})
     return out
 
 
-def driver_rows():
-    """7 qubits (+ upslope, conifer) and 10 qubits (+ future wind, ISI, rain) (E13)."""
-    m = pd.read_csv(RES / "e13_metrics.csv")
-    m = m[m.split == "val"]
-    spread = pd.read_csv(RES / "e13_seed_spread_val.csv")
+def e14_rows():
+    """5 qubits (submitted), 7 qubits (+ upslope, conifer), 10 qubits (+ future wind, ISI, rain) (E14)."""
+    sel = pd.read_csv(RES / "e14_selected.csv").set_index(["family", "version", "lead"])
     out = []
-    for version, n, label in (("A", 7, "7 qubits\n(+terrain +fuel)"), ("B", 10, "10 qubits\n(+future weather*)")):
+    for version, n, group, label in (("base5", 5, "submitted", "5 qubits\n(submitted)"),
+                                     ("A7", 7, "new inputs", "7 qubits\n(+terrain +fuel)"),
+                                     ("B10_h", 10, "new inputs", "10 qubits\n(+future weather*)")):
         for h in LEADS:
-            get = lambda name: float(m[(m.model == name) & (m.lead == h)].mae.iloc[0])
-            s = spread[(spread.version == version) & (spread.lead == h)]
-            out.append({"group": "new inputs", "qubits": n, "label": label, "lead": h,
-                        "quantum": get(f"qrc_{version}"), "q_min": s.val_mae.min(),
-                        "q_max": s.val_mae.max(), "n_seeds": len(s),
-                        "esn": get(f"esn_{version}"), "raw": get(f"raw_{version}")})
+            q, e, r = (sel.loc[f, version, h] for f in ("qrc", "esn", "raw"))
+            out.append({"group": group, "qubits": n, "label": label, "lead": h,
+                        "quantum": q.val_mean, "q_min": q.val_min, "q_max": q.val_max,
+                        "q_seeds": int(q.n_seeds), "q_config": q.config,
+                        "esn": e.val_mean, "e_min": e.val_min, "e_max": e.val_max,
+                        "e_seeds": int(e.n_seeds), "e_config": e.config, "raw": r.val_mean, "source": "E14"})
     return out
 
 
@@ -92,8 +73,8 @@ def references():
 def main():
     plt.rcParams.update({"font.size": 12, "axes.titlesize": 14, "axes.spines.top": False,
                          "axes.spines.right": False, "legend.frameon": False})
-    table = pd.DataFrame(tiled_rows() + ring_rows() + driver_rows())
-    table = table[table.group != "5 inputs, copied"].reset_index(drop=True)
+    rows = e14_rows()
+    table = pd.DataFrame(rows[:2] + ring_rows() + rows[2:])
     refs = references()
     order = table.drop_duplicates("label")[["label", "group"]].reset_index(drop=True)
 
@@ -102,11 +83,15 @@ def main():
     width = 0.26
     for ax, h in zip(axes, LEADS):
         d = table[table.lead == h].set_index("label").loc[order.label]
-        ax.bar(x - width, d.quantum, width, color=COLORS["quantum"], label="Quantum reservoir", zorder=2)
-        has_spread = (d.n_seeds > 1).to_numpy()
-        ax.vlines(x[has_spread] - width, d.q_min[has_spread], d.q_max[has_spread],
-                  color="#111111", lw=1.2, zorder=3, label="Quantum, range over reservoir seeds")
-        ax.bar(x, d.esn, width, color=COLORS["esn"], label="Classical reservoir (ESN), same size", zorder=2)
+        ring = (d.source == "E12").to_numpy()
+        ax.bar(x - width, d.quantum, width, color=COLORS["quantum"], label="Quantum reservoir", zorder=2,
+               hatch=["//" if r else "" for r in ring], edgecolor="white", lw=0)
+        ax.bar(x, d.esn, width, color=COLORS["esn"], label="Classical reservoir (ESN), same size", zorder=2,
+               hatch=["//" if r else "" for r in ring], edgecolor="white", lw=0)
+        for off, lo, hi, n in ((-width, d.q_min, d.q_max, d.q_seeds), (0.0, d.e_min, d.e_max, d.e_seeds)):
+            multi = (n > 1).to_numpy()
+            ax.vlines(x[multi] + off, lo[multi], hi[multi], color="#111111", lw=1.2, zorder=3,
+                      label="Range over 5 seeds" if off else "_nolegend_")
         ax.bar(x + width, d.raw, width, color=COLORS["raw"], label="Ridge on the same inputs", zorder=2)
         span = 0.012 * (2.5 if h == 3 else 1)
         for xi, v, top in zip(x, d.quantum, d.q_max):
@@ -120,7 +105,7 @@ def main():
             ax.text(1.005, v, f" {'Persistence' if name == 'persistence' else 'FBP'} {v:.3f}",
                     va="center", fontsize=10, color=COLORS[name], transform=ax.get_yaxis_transform())
         low = min(d[["quantum", "esn", "raw"]].min().min(), refs["fbp", h])
-        high = max(d[["quantum", "esn", "raw", "q_max"]].max().max(), refs["persistence", h])
+        high = max(d[["quantum", "esn", "raw", "q_max", "e_max"]].max().max(), refs["persistence", h])
         pad = 0.08 * (high - low)
         ax.set_ylim(low - pad, high + (4.0 if h == 1 else 2.0) * pad)
         ax.set_xlim(-0.6, len(order) - 0.4)
@@ -139,13 +124,15 @@ def main():
         axes[0].text(idx.to_numpy().mean(), hi - 0.03 * (hi - lo), name, ha="center", va="top",
                      fontsize=11, fontweight="bold", color="#333333")
     handles, labels = axes[0].get_legend_handles_labels()
-    order_idx = [labels.index(k) for k in ("Quantum reservoir", "Quantum, range over reservoir seeds",
+    order_idx = [labels.index(k) for k in ("Quantum reservoir", "Range over 5 seeds",
                                            "Classical reservoir (ESN), same size", "Ridge on the same inputs",
                                            "Persistence", "FBP physics")]
     handles, labels = [handles[i] for i in order_idx], [labels[i] for i in order_idx]
     fig.legend(handles, labels, loc="lower center", ncol=3, fontsize=10.5, bbox_to_anchor=(0.5, 0.0))
-    fig.text(0.08, 0.085, "* assumes a perfect weather forecast (observed regional weather; the fire's own "
-             "hotspots removed).\nBars start above zero so small gaps are visible.",
+    fig.text(0.08, 0.075, "Quantum and ESN bars: 5-seed mean of the setting with the best seed-mean 2022 MAE "
+             "(3 settings each). Hatched: one seed, untuned ESN.\n"
+             "* assumes a perfect weather forecast (observed regional weather; the fire's own "
+             "hotspots removed). Bars start above zero so small gaps are visible.",
              fontsize=9.5, color="#555555")
     fig.subplots_adjust(left=0.08, right=0.86, top=0.95, bottom=0.22, hspace=0.2)
     FIG.mkdir(exist_ok=True)
