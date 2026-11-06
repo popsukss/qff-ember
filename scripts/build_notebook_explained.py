@@ -77,13 +77,29 @@ def build_notebook():
 
         **Can a small quantum computer help forecast where a wildfire goes next?**
 
-        For a fire burning 3+ days, Ember predicts how far the edge moves in 8 directions,
-        +24 h and +72 h ahead.
+        ### Problem
+
+        - 2023 was Canada's worst fire season on record: 17.2 million ha burned (CIFFC, Canada Report 2023).
+        - Yellowknife: ~20,000 people ordered to leave as fire ZF015 approached (August 2023).
+        - Evacuation planning needs to know **where the fire edge will be in 1–3 days**, and in
+          **which direction** it is moving.
+
+        ### Proposed solution
+
+        **Ember:** for a fire burning 3+ days, predict how far the edge moves in each of 8
+        directions, +24 h and +72 h ahead, from free satellite hotspot data.
 
         ```
         satellite hotspots → 8 sector radii per day → 5 inputs × 5 days
                            → 5-qubit circuit (fixed) → 20 features → ridge (trained) → forecast
         ```
+
+        | Choice | Why |
+        |---|---|
+        | 8 sectors | direction matters for evacuation; 8 numbers a day keep the data simple |
+        | Quantum reservoir | fixed circuit, only ridge is trained → cheap; short circuit → runs on today's noisy hardware |
+        | Honest test | settings frozen on 2022, scored once on unseen 2023 fires, against simple, classical and physics baselines |
+        | Real hardware | one fire run on `ibm_fez` to check the forecasts survive noise |
 
         **Short answer**
         - Quantum ≈ classical models; no quantum advantage claimed.
