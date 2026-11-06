@@ -38,7 +38,7 @@ EMBEDDED = [
     "figures/e1_test_mae.png",
     "figures/e6_hardware.png", "figures/e8_zf015_map.png",
     "figures/qubit_comparison.png", "results/e14_metrics.csv", "results/e14_selected.csv",
-    "results/e14_paired.csv", "results/e14_meta.json",
+    "results/e14_paired.csv", "results/e14_meta.json", "results/qubit_windows.npz",
 ]
 
 
@@ -403,9 +403,8 @@ def build_notebook():
         | q5–q6 | upslope toward sector, conifer share |
         | q7–q9 | future wind → sector, ISI, rain at the lead (10 q only; one model per lead) |
 
-        Terrain and future values are the same on all 5 days of a window. Next cell builds both
-        circuits and checks NumPy = Qiskit. Training them needs the terrain/fuel/weather inputs
-        (`scripts/e13_build_drivers.py`) and runs in `scripts/e14_fair_baselines.py`; only results load here.
+        Terrain is read at each day's edge; future values are the same on all 5 days. Next cell builds both
+        circuits and checks NumPy = Qiskit; the cell after trains and forecasts them.
     """)
     code("""
         # 7- and 10-qubit versions: same chain, same frozen gamma and seed, more qubits.
@@ -421,6 +420,60 @@ def build_notebook():
         print("One day of the 10-qubit circuit:")
         print(big.circuit(window[-1:]).draw("text", fold=120))
     """, cell_id="more-qubit-code")
+    markdown("""
+        ### Train and forecast: 5, 7, 10 qubits (seed 7, $\\gamma=\\pi/4$)
+
+        Saved inputs (`results/qubit_windows.npz`, from `scripts/export_qubit_windows.py`):
+        2018–21 train, 2022 val, 88 Yellowknife windows, already scaled.
+        Steps: reservoir features → ridge on train → $\\lambda$ picked on 2022 → forecast. ~1 min.
+        Check: 2022 MAE must equal the E14 seed-7 row. The bar chart below is the 5-seed mean. Yellowknife = one fire, descriptive.
+    """)
+    code("""
+        GRID = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0, 100.0]
+
+        def ridge_fit(X, y, lam):
+            # Same as ember/readout.py: centre, then solve (X'X + lam I) w = X'y.
+            x_mean, y_mean = X.mean(axis=0), y.mean()
+            Xc = X - x_mean
+            coef = np.linalg.solve(Xc.T @ Xc + lam * np.eye(X.shape[1]), Xc.T @ (y - y_mean))
+            return lambda Z: np.maximum(Z @ coef + (y_mean - x_mean @ coef), 0.0)  # no negative advance
+
+        with load_array("results/qubit_windows.npz") as saved:
+            daily, static, part = saved["daily"].astype(float), saved["static"].astype(float), saved["part"]
+            targets = {1: saved["y1"].astype(float), 3: saved["y3"].astype(float)}
+        e14_val = read_csv("results/e14_metrics.csv").query(
+            "family == 'qrc' and seed == 7 and config == 'gamma=0.25pi' and split == 'val'")
+
+        def inputs(version, h):
+            if version == "base5":
+                return daily[:, :, :5]                       # wind, ISI, advance, BUI, humidity
+            if version == "A7":
+                return daily                                 # + upslope, conifer share
+            future = static[:, :3] if h == 1 else static[:, 3:]  # future wind, ISI, rain at lead h
+            return np.concatenate([daily, np.repeat(future[:, None], daily.shape[1], axis=1)], axis=2)
+
+        results = []
+        for version in ("base5", "A7", "B10_h"):
+            for h in (1, 3):
+                W_v = inputs(version, h)
+                X = ChainReservoir(n=W_v.shape[2], gamma=frozen["gamma"],
+                                   seed=frozen["reservoir_seed"]).feature_matrix(W_v, mode="numpy")
+                y = targets[h]
+                ok = ~np.isnan(y)
+                train, val, yk = ok & (part == 0), ok & (part == 1), ok & (part == 2)
+                val_mae = {lam: np.mean(np.abs(y[val] - ridge_fit(X[train], y[train], lam)(X[val])))
+                           for lam in GRID}
+                lam = min(GRID, key=val_mae.get)             # first lowest, as select_lambda
+                forecast = ridge_fit(X[train], y[train], lam)
+                saved_val = e14_val.query("version == @version and lead == @h").mae.item()
+                assert abs(val_mae[lam] - saved_val) < 1e-6, (version, h)
+                results.append({"version": version, "qubits": W_v.shape[2],
+                                "features": X.shape[1], "lead_h": 24 * h, "lambda": lam,
+                                "val 2022 MAE": round(val_mae[lam], 3), "E14 saved": round(saved_val, 3),
+                                "Yellowknife MAE": round(float(np.mean(np.abs(y[yk] - forecast(X[yk])))), 3),
+                                "Yellowknife n": int(yk.sum())})
+        display(pd.DataFrame(results))
+    """, cell_id="more-qubit-train")
     code("""
         show_figure("qubit_comparison.png")
         version_labels = {"base5": "5 qubits (base)", "A7": "7 qubits (+terrain +fuel)",
@@ -568,7 +621,8 @@ def build_notebook():
         6. `scripts/e10_rebuild_check.py --year 2023` (E10 shape check)
         7. `scripts/e13_build_drivers.py` (terrain, fuel, weather inputs for the more-qubit versions)
         8. `scripts/e14_fair_baselines.py`, then `scripts/plot_qubit_comparison.py`
-        9. `scripts/build_notebook_explained.py` (this notebook)
+        9. `scripts/export_qubit_windows.py` (7/10-qubit inputs trained here)
+        10. `scripts/build_notebook_explained.py` (this notebook)
     """)
     return nbformat.v4.new_notebook(cells=cells, metadata={
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
