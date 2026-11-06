@@ -30,13 +30,13 @@ NOTEBOOK = ROOT / "notebooks" / "ember_explained.ipynb"
 EMBEDDED = [
     "results/fire_counts.json", "results/e10_2023.json", "results/e3_val.csv",
     "results/frozen_config.json",
-    "results/metrics.csv", "results/qrc_comparisons.csv", "results/e4_seeds.csv",
+    "results/metrics.csv", "results/qrc_comparisons.csv",
     "results/e2_wind.csv", "results/e5_shots.csv", "results/e9_sparse.csv",
     "results/e6_meta.json", "results/e6_predictions.csv", "results/e6_hardware.csv",
     "results/qrc_z_readout.json", "results/e8_eta.json",
     "hardware/e6_job_metrics.json", "hardware/jobs.json",
     "hardware/e6_hw_features.npy", "hardware/zf015_case.npz",
-    "figures/e1_test_mae.png", "figures/e4_seeds.png", "figures/e2_wind.png",
+    "figures/e1_test_mae.png", "figures/e2_wind.png",
     "figures/e6_hardware.png", "figures/e8_zf015_map.png",
     "figures/qubit_comparison.png", "results/e14_metrics.csv", "results/e14_selected.csv",
     "results/e14_paired.csv", "results/e14_meta.json",
@@ -387,20 +387,11 @@ def build_notebook():
 
         | ID | Question | Answer |
         |---|---|---|
-        | E4 | Lucky random circuit? | No: seeds vary by ~0.01–0.02 km |
+        | E4 | Lucky random circuit? | No: 5 seeds vary by ~0.01–0.02 km (range bars in the qubit chart below) |
         | E4 | Why CZ, not random gates (`haar`)? | Same MAE (0.361 / 0.946 vs 0.360 / 0.943), CZ uses 3× fewer two-qubit gates |
         | E2 | Holds by wind direction? | Yes: all miss most downwind; `qrc` ≈ `esn20` in each |
         | E5 | How many shots needed? | 100 shots → 1.21 km; 10,000 → within 0.05 km of exact |
         | E9 | Missing satellite days? | Degrades like `esn20`, less than persistence |
-    """)
-    code("""
-        seeds = read_csv("results/e4_seeds.csv")
-        seeds = seeds.loc[seeds.split.eq("test")]
-        print("E4 — fixed-seed test MAE (km)")
-        display(seeds.groupby(["model", "lead"]).agg(
-            seeds=("seed", "nunique"), mae_mean=("mae", "mean"), mae_sd=("mae", "std")
-        ))
-        show_figure("e4_seeds.png")
     """)
     code("""
         wind = read_csv("results/e2_wind.csv")
