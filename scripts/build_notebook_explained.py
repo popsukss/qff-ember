@@ -394,7 +394,33 @@ def build_notebook():
         \*Observed later weather = assumes a perfect forecast (fire's own hotspots removed).
         Fair budget: quantum and ESN each try 3 settings × 5 seeds; best 5-seed mean on 2022 kept.
         Bars = seed mean, lines = quantum seed range. 2023 columns are post-hoc (2023 already used above).
+
+        **Same reservoir code, more qubits:** `ChainReservoir(n=7)` and `ChainReservoir(n=10)`.
+
+        | Qubits | Inputs |
+        |---|---|
+        | q0–q4 | wind → sector, ISI, today's advance, BUI, humidity (as base) |
+        | q5–q6 | upslope toward sector, conifer share |
+        | q7–q9 | future wind → sector, ISI, rain at the lead (10 q only; one model per lead) |
+
+        Terrain and future values are the same on all 5 days of a window. Next cell builds both
+        circuits and checks NumPy = Qiskit. Training them needs the terrain/fuel/weather inputs
+        (`scripts/e13_build_drivers.py`) and runs in `scripts/e14_fair_baselines.py`; only results load here.
     """)
+    code("""
+        # 7- and 10-qubit versions: same chain, same frozen gamma and seed, more qubits.
+        rng = np.random.default_rng(0)
+        for n in (7, 10):
+            big = ChainReservoir(n=n, gamma=frozen["gamma"], seed=frozen["reservoir_seed"])
+            window = rng.uniform(size=(frozen["L"], n))  # stand-in inputs in [0, 1]
+            qc = big.circuit(window)
+            diff = float(np.max(np.abs(big.features_numpy(window) - big.features_exact(window))))
+            print(f"{n} qubits: {qc.count_ops()['cz']} CZ, depth {qc.depth()}, "
+                  f"{len(feature_names(n))} features, max |NumPy - Qiskit| = {diff:.1e}")
+            assert diff < 1e-10
+        print("One day of the 10-qubit circuit:")
+        print(big.circuit(window[-1:]).draw("text", fold=120))
+    """, cell_id="more-qubit-code")
     code("""
         show_figure("qubit_comparison.png")
         version_labels = {"base5": "5 qubits (base)", "A7": "7 qubits (+terrain +fuel)",
