@@ -44,7 +44,7 @@ def save(fig, name):
 
 
 def e1(metrics):
-    models = list(LABELS)
+    models = [m for m in LABELS if m != "haar"]  # haar is a design control, not a baseline
     fig, axes = plt.subplots(1, 2, figsize=(14, 7), sharey=True)
     for ax, h in zip(axes, (1, 3)):
         rows = metrics.loc[metrics.lead.eq(h)].set_index("model").loc[models]
@@ -68,8 +68,6 @@ def e1(metrics):
     fig.suptitle("Test forecast error with 95% fire-bootstrap intervals", fontsize=18)
     fig.text(0.5, 0.065, "FBP physics has the lowest MAE at both leads; QRC improves on persistence only at +72 h.",
              ha="center", fontsize=12)
-    fig.text(0.5, 0.025, "Haar: mean of 10 per-seed MAEs and CI endpoints (not an ensemble confidence interval).",
-             ha="center", fontsize=11, color="#444444")
     fig.subplots_adjust(left=0.19, right=0.98, bottom=0.19, top=0.87, wspace=0.14)
     save(fig, "e1_test_mae.png")
 
