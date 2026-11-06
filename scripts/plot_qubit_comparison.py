@@ -50,7 +50,7 @@ def e14_rows():
     """5 qubits (submitted), 7 qubits (+ upslope, conifer), 10 qubits (+ future wind, ISI, rain) (E14)."""
     sel = pd.read_csv(RES / "e14_selected.csv").set_index(["family", "version", "lead"])
     out = []
-    for version, n, group, label in (("base5", 5, "submitted", "5 qubits\n(submitted)"),
+    for version, n, group, label in (("base5", 5, "submitted", "5 qubits\n(base)"),
                                      ("A7", 7, "new inputs", "7 qubits\n(+terrain +fuel)"),
                                      ("B10_h", 10, "new inputs", "10 qubits\n(+future weather*)")):
         for h in LEADS:
@@ -103,7 +103,7 @@ def main():
         low = min(d[["quantum", "esn", "raw"]].min().min(), refs["fbp", h])
         high = max(d[["quantum", "esn", "raw", "q_max"]].max().max(), refs["persistence", h])
         pad = 0.08 * (high - low)
-        ax.set_ylim(low - pad, high + (4.0 if h == 1 else 2.0) * pad)
+        ax.set_ylim(low - pad, high + 2.0 * pad)
         ax.set_xlim(-0.6, len(order) - 0.4)
         ax.set_ylabel("Average miss (km)")
         ax.set_title(f"+{24 * h} h forecast  (2022 validation fires, lower is better)", loc="left", pad=8)
@@ -113,12 +113,6 @@ def main():
             if order.group[i] != order.group[i - 1]:
                 ax.axvline(i - 0.5, color="#999999", lw=1, zorder=1)
     axes[1].set_xticks(x, order.label)
-    for group, name in (("submitted", "Submitted"), ("neighbour slices", "Neighbour slices"),
-                        ("new inputs", "New inputs")):
-        idx = order.index[order.group == group]
-        lo, hi = axes[0].get_ylim()
-        axes[0].text(idx.to_numpy().mean(), hi - 0.03 * (hi - lo), name, ha="center", va="top",
-                     fontsize=11, fontweight="bold", color="#333333")
     handles, labels = axes[0].get_legend_handles_labels()
     order_idx = [labels.index(k) for k in ("Quantum reservoir", "Quantum, range over reservoir seeds",
                                            "Classical reservoir (ESN), same size", "Ridge on the same inputs",
