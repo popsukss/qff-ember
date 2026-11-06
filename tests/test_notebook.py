@@ -20,6 +20,7 @@ HEADINGS = [
     "## Controls",
     "## Real hardware (E6)",
     "## ZF015 / Yellowknife case",
+    "## More qubits and inputs (after freezing)",
     "## Conclusions and limits",
 ]
 

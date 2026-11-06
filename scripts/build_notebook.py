@@ -37,6 +37,7 @@ EMBEDDED = [
     "hardware/e6_hw_features.npy", "hardware/zf015_case.npz",
     "figures/e1_test_mae.png", "figures/e4_seeds.png", "figures/e2_wind.png",
     "figures/e6_hardware.png", "figures/e8_zf015_map.png",
+    "figures/qubit_comparison.png", "results/e13_metrics.csv", "results/e13_paired.csv",
 ]
 
 
@@ -353,6 +354,54 @@ def build_notebook():
         location = read_json("results/e8_eta.json")
         print(f"{location['town']}: {location['distance_km']:.1f} km from the fire centre, sector {location['sector']}.")
         show_figure("e8_zf015_map.png")
+    """)
+
+    markdown("""
+        ## More qubits and inputs (after freezing)
+
+        After the study was frozen, we tried larger circuits. These runs are exploratory and
+        do not change the results above. The chart shows 2022 validation MAE (lower is better);
+        larger circuits that only copy the same 5 inputs onto extra qubits are left out.
+
+        - **16 qubits (ring):** 2 qubits per sector, all 8 sectors linked to their neighbours.
+        - **7 qubits (+terrain +fuel):** adds upslope toward the sector and conifer share.
+        - **10 qubits (+future weather\\*):** also adds regional wind toward the sector, ISI and
+          rain for the forecast days (+24 h: the next day; +72 h: the next three days).
+          \\*This uses the weather that was later observed, so it assumes a perfect weather
+          forecast; the fire's own hotspots are removed from it.
+
+        Each group compares the quantum reservoir (seed 7; the thin line spans other seeds, where run), a
+        classical reservoir (ESN) of the same size, and ridge on the same inputs. The table
+        below gives the 2023 test scores. 2023 had already been used by the frozen study, so
+        these are a post-hoc second look, not a new test.
+    """)
+    code("""
+        show_figure("qubit_comparison.png")
+        extra = read_csv("results/e13_metrics.csv")
+        extra = extra.loc[extra.split.eq("test")]
+        reference = metrics.loc[metrics.split.eq("test") & metrics.model.isin(["fbp", "persistence"])]
+        rows = []
+        for version, label in (("base", "5 qubits (submitted)"), ("A", "7 qubits (+terrain +fuel)"),
+                               ("B", "10 qubits (+future weather)")):
+            for kind, name in (("qrc", "quantum"), ("esn", "ESN"), ("raw", "ridge")):
+                for row in extra.loc[extra.model.eq(f"{kind}_{version}")].itertuples():
+                    rows.append({"version": label, "model": name, "lead_h": row.lead * 24, "mae": row.mae})
+        for row in reference.itertuples():
+            rows.append({"version": "reference", "model": row.model, "lead_h": row.lead * 24, "mae": row.mae})
+        print("2023 test MAE (km), post-hoc")
+        display(pd.DataFrame(rows).pivot_table(index=["version", "model"], columns="lead_h",
+                                               values="mae", sort=False))
+        paired = read_csv("results/e13_paired.csv")
+        paired = paired.loc[paired.split.eq("test")].assign(lead_h=lambda d: d.lead * 24)
+        print("Paired 2023 MAE differences: larger quantum model minus reference; negative favours it.")
+        display(paired[["model", "reference", "lead_h", "diff", "lo", "hi"]].reset_index(drop=True))
+    """)
+    markdown("""
+        Future weather gives the only clear gain: the 10-qubit reservoir beats the submitted
+        5-qubit one on 2023 (paired differences below 0). Ridge on the same 10 inputs still
+        does better (paired differences above 0), so adding qubits does not close the gap to
+        ridge. Terrain and fuel do not help the quantum reservoir. A perfect weather forecast
+        is not available in practice, so the 10-qubit result is a best case.
     """)
 
     markdown("""
