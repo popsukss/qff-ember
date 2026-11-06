@@ -10,7 +10,7 @@ import nbformat
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-NOTEBOOK = ROOT / "notebooks" / "ember.ipynb"
+NOTEBOOKS = [ROOT / "notebooks" / "ember.ipynb", ROOT / "notebooks" / "ember_explained.ipynb"]
 HEADINGS = [
     "# Ember",
     "## Data and sector geometry",
@@ -25,16 +25,17 @@ HEADINGS = [
 ]
 
 
-@pytest.fixture(scope="module")
-def notebook():
-    assert NOTEBOOK.is_file()
-    value = nbformat.read(NOTEBOOK, as_version=4)
+@pytest.fixture(scope="module", params=NOTEBOOKS, ids=lambda path: path.stem)
+def notebook(request):
+    assert request.param.is_file()
+    value = nbformat.read(request.param, as_version=4)
     nbformat.validate(value)
+    value.path = request.param
     return value
 
 
 def test_notebook_executed_and_small(notebook):
-    assert NOTEBOOK.stat().st_size < 20_000_000
+    assert notebook.path.stat().st_size < 20_000_000
     code_cells = [cell for cell in notebook.cells if cell.cell_type == "code"]
     assert code_cells
     for cell in code_cells:
