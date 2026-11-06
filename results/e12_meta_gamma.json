@@ -1,0 +1,9 @@
+{
+  "status": "exploratory; train 2018-2021, val 2022 only; 2023 never loaded",
+  "fire_days": 9072,
+  "sector_rows": 72576,
+  "best": "ring_g0.785_s7",
+  "seconds": {
+    "0.7854/7": 119.21262495801784
+  }
+}
