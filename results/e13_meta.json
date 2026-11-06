@@ -1,0 +1,58 @@
+{
+  "status": "exploratory; ridge penalty chosen on 2022; 2023 is a post-hoc second look (already used by the locked study)",
+  "inputs": {
+    "base5": [
+      "w_k",
+      "isi",
+      "dd_km",
+      "bui",
+      "rh"
+    ],
+    "A7": [
+      "w_k",
+      "isi",
+      "dd_km",
+      "bui",
+      "rh",
+      "up_k",
+      "conif_k"
+    ],
+    "B10_1": [
+      "w_k",
+      "isi",
+      "dd_km",
+      "bui",
+      "rh",
+      "up_k",
+      "conif_k",
+      "fw_1",
+      "fisi_1",
+      "fpcp_1"
+    ],
+    "B10_3": [
+      "w_k",
+      "isi",
+      "dd_km",
+      "bui",
+      "rh",
+      "up_k",
+      "conif_k",
+      "fw_3",
+      "fisi_3",
+      "fpcp_3"
+    ]
+  },
+  "frozen": {
+    "L": 5,
+    "gamma": 0.7853981633974483,
+    "seed": 7
+  },
+  "future_weather": "regional (3x3 one-degree cells, all hotspots) observed weather = perfect-forecast assumption; t+1 for +24 h, t+1..t+3 for +72 h",
+  "seeds": [
+    7,
+    11,
+    13,
+    17,
+    19
+  ]
+}
