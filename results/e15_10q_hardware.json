@@ -1,0 +1,22 @@
+{
+  "job_id": "dbn5i25t7fqc73aivk00",
+  "lead_h": 72,
+  "n_qubits": 10,
+  "n_windows": 88,
+  "lambda": 0.0001,
+  "mae_exact": 0.9632711827865479,
+  "mae_hardware": 0.8130702364512465,
+  "feature_gap_mean": 0.09960741752459737,
+  "forecast_gap_mean": 0.3243458213074998,
+  "mean_forecast_exact": 0.3243458213074998,
+  "mean_forecast_hardware": 0.0,
+  "share_hardware_forecasts_zero": 1.0,
+  "mae_predict_zero": 0.8130702364512465,
+  "mean_abs_feature_exact": 0.3473411923272462,
+  "mean_abs_feature_hardware": 0.24980917355371898,
+  "usage": {
+    "quantum_seconds": 324.725492787
+  },
+  "status": "exploratory, post-hoc; one fire; perfect-weather inputs",
+  "quantum_seconds": null
+}
