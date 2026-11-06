@@ -4,8 +4,9 @@
 All numbers are 2022 validation MAE, read from saved result tables (no simulation):
   5 qubits (submitted), 7 qubits (+ terrain, fuel), 10 qubits (+ future weather)   E14
 E14 gives the quantum reservoir and the classical reservoir (ESN) the same tuning
-budget (3 configs each, chosen by seed-mean 2022 MAE) and averages 5 seeds; the
-bars are seed means and the thin lines span the seeds. Ridge on the same inputs is
+budget (3 configs each, chosen by seed-mean 2022 MAE) and runs 5 seeds. The quantum
+bar is the frozen reservoir seed 7 (the run the walkthrough notebook repeats), the thin
+line spans all 5 seeds; ESN bars are seed means. Ridge on the same inputs is
 deterministic. The 16-qubit ring (E12) is left out: it lost to its own ESN and ridge.
 Larger circuits that only copy the same 5 inputs (E11, 8-15 qubits) are left out.
 
@@ -30,9 +31,14 @@ COLORS = {"quantum": "#0072B2", "esn": "#009E73", "raw": "#CC79A7",
 LEADS = (1, 3)
 
 
+QRC_SEED = 7  # frozen reservoir seed
+
+
 def e14_rows():
     """5 qubits (submitted), 7 qubits (+ upslope, conifer), 10 qubits (+ future wind, ISI, rain) (E14)."""
     sel = pd.read_csv(RES / "e14_selected.csv").set_index(["family", "version", "lead"])
+    runs = pd.read_csv(RES / "e14_metrics.csv")
+    runs = runs[(runs.family == "qrc") & (runs.seed == QRC_SEED) & (runs.split == "val")]
     out = []
     for version, n, group, label in (("base5", 5, "submitted", "5 qubits\n(base)"),
                                      ("A7", 7, "new inputs", "7 qubits\n(+terrain +fuel)"),
@@ -40,7 +46,9 @@ def e14_rows():
         for h in LEADS:
             q, e, r = (sel.loc[f, version, h] for f in ("qrc", "esn", "raw"))
             out.append({"group": group, "qubits": n, "label": label, "lead": h,
-                        "quantum": q.val_mean, "q_min": q.val_min, "q_max": q.val_max,
+                        "quantum": float(runs[(runs.version == version) & (runs.lead == h)
+                                                & (runs.config == q.config)].mae.item()),
+                        "q_mean": q.val_mean, "q_min": q.val_min, "q_max": q.val_max,
                         "q_seeds": int(q.n_seeds), "q_config": q.config,
                         "esn": e.val_mean, "e_min": e.val_min, "e_max": e.val_max,
                         "e_seeds": int(e.n_seeds), "e_config": e.config, "raw": r.val_mean, "source": "E14"})
@@ -67,7 +75,7 @@ def main():
     width = 0.26
     for ax, h in zip(axes, LEADS):
         d = table[table.lead == h].set_index("label").loc[order.label]
-        ax.bar(x - width, d.quantum, width, color=COLORS["quantum"], label="Quantum reservoir", zorder=2)
+        ax.bar(x - width, d.quantum, width, color=COLORS["quantum"], label="Quantum reservoir (seed 7, run in notebook)", zorder=2)
         has_spread = (d.q_seeds > 1).to_numpy()
         ax.vlines(x[has_spread] - width, d.q_min[has_spread], d.q_max[has_spread],
                   color="#111111", lw=1.2, zorder=3, label="Quantum, range over reservoir seeds")
@@ -98,7 +106,7 @@ def main():
                 ax.axvline(i - 0.5, color="#999999", lw=1, zorder=1)
     axes[1].set_xticks(x, order.label)
     handles, labels = axes[0].get_legend_handles_labels()
-    order_idx = [labels.index(k) for k in ("Quantum reservoir", "Quantum, range over reservoir seeds",
+    order_idx = [labels.index(k) for k in ("Quantum reservoir (seed 7, run in notebook)", "Quantum, range over reservoir seeds",
                                            "Classical reservoir (ESN), same size", "Ridge on the same inputs",
                                            "Persistence", "FBP physics")]
     handles, labels = [handles[i] for i in order_idx], [labels[i] for i in order_idx]

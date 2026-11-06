@@ -39,6 +39,7 @@ EMBEDDED = [
     "figures/e6_hardware.png", "figures/e8_zf015_map.png",
     "figures/qubit_comparison.png", "results/e14_metrics.csv", "results/e14_selected.csv",
     "results/e14_paired.csv", "results/e14_meta.json", "results/qubit_windows.npz",
+    "results/qubit_comparison_val.csv",
 ]
 
 
@@ -393,7 +394,8 @@ def build_notebook():
 
         \*Observed later weather = assumes a perfect forecast (fire's own hotspots removed).
         Fair budget: quantum and ESN each try 3 settings × 5 seeds; best 5-seed mean on 2022 kept.
-        Bars = seed mean, lines = quantum seed range. 2023 columns are post-hoc (2023 already used above).
+        Blue bars = seed 7, trained in this notebook below; lines = range over 5 seeds; ESN bars = 5-seed mean.
+        Seed 7 is the best of 5 at 10 q; the fair comparison uses seed means (table). 2023 columns are post-hoc.
 
         **Same reservoir code, more qubits:** `ChainReservoir(n=7)` and `ChainReservoir(n=10)`.
 
@@ -426,7 +428,7 @@ def build_notebook():
         Saved inputs (`results/qubit_windows.npz`, from `scripts/export_qubit_windows.py`):
         2018–21 train, 2022 val, 88 Yellowknife windows, already scaled.
         Steps: reservoir features → ridge on train → $\\lambda$ picked on 2022 → forecast. ~1 min.
-        Check: 2022 MAE must equal the E14 seed-7 row. The bar chart below is the 5-seed mean. Yellowknife = one fire, descriptive.
+        Check: 2022 MAE must equal the E14 seed-7 row. Blue bars in the chart below = these 2022 numbers. Yellowknife = one fire, descriptive.
     """)
     code("""
         GRID = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0, 100.0]
@@ -476,6 +478,12 @@ def build_notebook():
     """, cell_id="more-qubit-train")
     code("""
         show_figure("qubit_comparison.png")
+        bars = read_csv("results/qubit_comparison_val.csv")
+        for row in results:  # chart blue bars = this notebook's seed-7 run
+            h = row["lead_h"] // 24
+            bar = bars.query("qubits == @row['qubits'] and lead == @h").quantum.item()
+            assert abs(bar - row["val 2022 MAE"]) < 5e-4, row
+        print("Chart blue bars match the seed-7 run above.")
         version_labels = {"base5": "5 qubits (base)", "A7": "7 qubits (+terrain +fuel)",
                   "B10_h": "10 qubits (+future weather)"}
         family_names = {"qrc": "quantum", "esn": "ESN", "raw": "ridge"}
@@ -500,7 +508,7 @@ def build_notebook():
         display(e14_paired[["version", "lead_h", "comparison", "diff", "lo", "hi"]].reset_index(drop=True))
     """)
     markdown("""
-        **Takeaway:** ridge on raw inputs is best or within 0.0015 km of best everywhere. 5 q and 7 q: quantum loses
+        **Takeaway (seed means, fair):** ridge on raw inputs is best or within 0.0015 km of best everywhere. 5 q and 7 q: quantum loses
         to ridge and tuned ESN (both leads, both years). 10 q: ties ridge on 2022; on 2023 loses
         to ridge (+0.006 / +0.027 km) and beats ESN by a little (−0.003 / −0.008 km), the only
         quantum edge left. Seed spread is wide (10 q, 2022, +24 h: 0.276–0.307 km). Both picked
