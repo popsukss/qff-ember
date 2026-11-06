@@ -63,3 +63,35 @@ def test_e6_recomputation_differences_printed(notebook):
     differences = re.findall(r"E6 \+(24|72) h absolute MAE difference: ([0-9.eE+-]+) km", output)
     assert [lead for lead, _ in differences] == ["24", "72"]
     assert all(0 <= float(value) < 1e-9 for _, value in differences)
+
+
+def test_notebook_is_self_contained(notebook):
+    """No repository imports or file reads: every input is embedded."""
+    forbidden = ("from ember", "import ember", "os.chdir", "Path.cwd", "read_text(",
+                 "open(", "filename=", "sys.path")
+    for cell in notebook.cells:
+        if cell.cell_type != "code":
+            continue
+        for text in forbidden:
+            assert text not in cell.source, (cell.id, text)
+
+
+def test_embedded_files_match_repository(notebook):
+    import base64
+    import gzip
+    import hashlib
+
+    cell = next(cell for cell in notebook.cells if cell.id == "embedded-data")
+    literal = cell.source.split('BUNDLE = "', 1)[1].rstrip().rstrip('"')
+    files = json.loads(gzip.decompress(base64.b64decode(literal)))
+    assert files
+    for name, item in files.items():
+        data = base64.b64decode(item["b64"])
+        assert hashlib.sha256(data).hexdigest() == item["sha256"], name
+        assert data == (ROOT / name).read_bytes(), f"stale embedded copy: {name}"
+
+
+def test_reservoir_code_matches_package(notebook):
+    cell = next(cell for cell in notebook.cells if cell.id == "reservoir-code")
+    package = (ROOT / "ember" / "reservoir.py").read_text()
+    assert cell.source.strip() in package

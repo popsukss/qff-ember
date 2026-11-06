@@ -166,15 +166,24 @@ hardware is better.
 
 ## Try it
 
-The notebook walks through the whole project. It runs from the saved results, so it needs no
-data download and no IBM account:
+The notebook `notebooks/ember.ipynb` walks through the whole project. **It runs on its own:**
+you only need that one file. The saved results, hardware measurements and figures are stored
+inside it, so it needs no other files, no data download and no IBM account. Install four
+packages, then run all cells:
+
+```bash
+pip install numpy==2.5.4 pandas==3.1.1 qiskit==2.6.1 ipython
+```
+
+You can also just open it: the outputs are already saved in it.
+
+To rebuild the notebook from this repository (it is then run in an empty folder to check
+that it needs no other files):
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python -I scripts/build_notebook.py     # runs notebooks/ember.ipynb
+.venv/bin/python -I scripts/build_notebook.py
 ```
-
-Or open `notebooks/ember.ipynb` directly: the outputs are already saved in it.
 
 ## Rebuild everything from the raw data
 

@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
-"""Build and execute the submission notebook from committed local artifacts.
+"""Build and execute the self-contained submission notebook.
+
+Every input the notebook reads (saved results, hardware arrays, figures) is
+embedded in it as one compressed, checksummed data cell, and the reservoir code
+is copied in from ember/reservoir.py. The notebook is executed in an empty
+temporary directory, so it is proven to run with no other files.
 
 Run with .venv/bin/python -I scripts/build_notebook.py from the repository root.
 """
 
 from __future__ import annotations
 
+import base64
+import gzip
+import hashlib
+import json
 from pathlib import Path
 import sys
+import tempfile
 from textwrap import dedent
 from time import perf_counter
 
@@ -17,6 +27,35 @@ from nbconvert.preprocessors import ExecutePreprocessor
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK = ROOT / "notebooks" / "ember.ipynb"
+EMBEDDED = [
+    "results/fire_counts.json", "results/e10_2023.json", "results/frozen_config.json",
+    "results/metrics.csv", "results/qrc_comparisons.csv", "results/e4_seeds.csv",
+    "results/e2_wind.csv", "results/e5_shots.csv", "results/e9_sparse.csv",
+    "results/e6_meta.json", "results/e6_predictions.csv", "results/e6_hardware.csv",
+    "results/qrc_z_readout.json", "results/e8_eta.json",
+    "hardware/e6_job_metrics.json", "hardware/jobs.json",
+    "hardware/e6_hw_features.npy", "hardware/zf015_case.npz",
+    "figures/e1_test_mae.png", "figures/e4_seeds.png", "figures/e2_wind.png",
+    "figures/e6_hardware.png", "figures/e8_zf015_map.png",
+]
+
+
+def bundle_literal():
+    """One gzip+base64 string holding every embedded file and its SHA-256."""
+    files = {}
+    for name in EMBEDDED:
+        data = (ROOT / name).read_bytes()
+        files[name] = {"sha256": hashlib.sha256(data).hexdigest(),
+                       "b64": base64.b64encode(data).decode("ascii")}
+    packed = gzip.compress(json.dumps(files, sort_keys=True).encode(), mtime=0)
+    return base64.b64encode(packed).decode("ascii")
+
+
+def reservoir_source():
+    """ember/reservoir.py without its module docstring and __future__ import."""
+    text = (ROOT / "ember" / "reservoir.py").read_text()
+    body = text.split("from __future__ import annotations\n", 1)[1]
+    return body.strip()
 
 
 def build_notebook():
@@ -40,43 +79,60 @@ def build_notebook():
         ridge read-out learns the forecasts. Data: CWFIS hotspots and fire perimeters,
         Canadian Forest Service.
 
-        This notebook reads the committed results and runs two small local checks.
-        It needs no downloads. Install `requirements.txt`, select the project Python
-        environment, and run all cells from the repository root or `notebooks/`.
+        **This notebook runs on its own.** It needs no other files, no data download
+        and no IBM account. The saved results, hardware measurements and figures are
+        embedded in the next (collapsed) cell, and the reservoir code is included below.
+        It needs only these Python packages:
+
+        `pip install numpy==2.5.4 pandas==3.1.1 qiskit==2.6.1 ipython`
+
+        Then run all cells.
     """)
+    cells.append(nbformat.v4.new_code_cell(
+        "# Embedded data: a compressed copy of the saved result files (results/, hardware/,\n"
+        "# figures/), so this notebook needs no other files. The next cell checks every\n"
+        "# file against its SHA-256 checksum.\n"
+        f'BUNDLE = "{bundle_literal()}"',
+        metadata={"jupyter": {"source_hidden": True}, "collapsed": True}))
+    cells[-1].id = "embedded-data"
     code("""
-        from pathlib import Path
+        import base64
+        import gzip
+        import hashlib
+        import io
         import json
-        import os
-        import sys
 
         import numpy as np
         import pandas as pd
-        from IPython.display import Image, Markdown, display
+        from IPython.display import Image, display
 
-        root = Path.cwd().resolve()
-        if root.name == "notebooks":
-            root = root.parent
-        assert (root / "ember" / "reservoir.py").is_file(), "Run from the repository root or notebooks/"
-        os.chdir(root)
-        if str(root) not in sys.path:
-            sys.path.insert(0, str(root))
-
-        from ember.hardware import frozen_reservoir
-        from ember.metrics import mae
-        from ember.reservoir import feature_names
+        FILES = {}
+        for name, item in json.loads(gzip.decompress(base64.b64decode(BUNDLE))).items():
+            data = base64.b64decode(item["b64"])
+            assert hashlib.sha256(data).hexdigest() == item["sha256"], f"corrupted: {name}"
+            FILES[name] = data
 
         pd.set_option("display.max_rows", 50)
         pd.set_option("display.max_columns", 12)
         pd.set_option("display.float_format", lambda value: f"{value:.6f}")
 
-        def read_json(path):
-            return json.loads(Path(path).read_text())
+        def read_json(name):
+            return json.loads(FILES[name])
+
+        def read_csv(name, **options):
+            return pd.read_csv(io.BytesIO(FILES[name]), **options)
+
+        def load_array(name):
+            return np.load(io.BytesIO(FILES[name]), allow_pickle=False)
 
         def show_figure(name):
-            display(Image(filename=str(Path("figures") / name), width=950, embed=True))
+            display(Image(data=FILES["figures/" + name], format="png", width=950))
 
-        print("Committed results loaded locally; distances and errors are in km.")
+        def mae(y, yhat):
+            \"\"\"Mean absolute error over the supplied targets.\"\"\"
+            return float(np.mean(np.abs(np.asarray(y) - np.asarray(yhat))))
+
+        print(f"{len(FILES)} embedded files verified; distances and errors are in km.")
     """)
 
     markdown(r"""
@@ -110,15 +166,18 @@ def build_notebook():
         Training rows set the input min/max scaling to $[0,1]$.
         Each window starts in $|00000\rangle$ and carries its state through the days:
         input-dependent RY rotations, a CZ chain, then fixed RY/RZ rotations.
-        The saved ZF015 windows are already scaled. Below are the frozen choices,
-        the first window's circuit, and all observable names in read-out order.
+        The saved ZF015 windows are already scaled. The next cell is the complete
+        reservoir code (the same as `ember/reservoir.py`). After it come the frozen
+        choices, the first window's circuit, and all observable names in read-out order.
     """)
+    cells.append(nbformat.v4.new_code_cell(reservoir_source()))
+    cells[-1].id = "reservoir-code"
     code("""
         frozen = read_json("results/frozen_config.json")
         choices = {key: frozen[key] for key in ("L", "gamma", "input_map", "lambdas", "reservoir_seed")}
         print(json.dumps(choices, indent=2))
-        reservoir = frozen_reservoir("results/frozen_config.json")
-        with np.load("hardware/zf015_case.npz", allow_pickle=False) as case:
+        reservoir = ChainReservoir(gamma=frozen["gamma"], seed=frozen["reservoir_seed"])
+        with load_array("hardware/zf015_case.npz") as case:
             W = case["windows"].copy()
             case_rows = pd.DataFrame({
                 "date": pd.to_datetime(case["dates"]),
@@ -163,7 +222,7 @@ def build_notebook():
         ensemble confidence interval. E7 is the reservoir + raw row.
     """)
     code("""
-        metrics = pd.read_csv("results/metrics.csv")
+        metrics = read_csv("results/metrics.csv")
         test = metrics.loc[metrics.split.eq("test")].copy()
         result_table = test[["model", "lead", "skill", "iou", "mae_growing"]].copy()
         result_table["lead"] *= 24
@@ -173,7 +232,7 @@ def build_notebook():
             for row in test.itertuples()
         ])
         display(result_table.sort_values(["lead_h", "model"]).reset_index(drop=True))
-        comparisons = pd.read_csv("results/qrc_comparisons.csv")
+        comparisons = read_csv("results/qrc_comparisons.csv")
         comparisons["lead_h"] = comparisons.pop("lead") * 24
         print("Paired MAE differences: reservoir minus reference; negative favours the reservoir.")
         display(comparisons)
@@ -190,7 +249,7 @@ def build_notebook():
         the committed tables and keep the selected configuration fixed.
     """)
     code("""
-        seeds = pd.read_csv("results/e4_seeds.csv")
+        seeds = read_csv("results/e4_seeds.csv")
         seeds = seeds.loc[seeds.split.eq("test")]
         print("E4 — fixed-seed test MAE (km)")
         display(seeds.groupby(["model", "lead"]).agg(
@@ -198,17 +257,17 @@ def build_notebook():
         ))
         show_figure("e4_seeds.png")
 
-        wind = pd.read_csv("results/e2_wind.csv")
+        wind = read_csv("results/e2_wind.csv")
         print("E2 — test MAE by wind bin (km); lead is in days")
         display(wind.pivot(index=["model", "wind_bin"], columns="lead", values="mae"))
         show_figure("e2_wind.png")
     """)
     code("""
-        shots = pd.read_csv("results/e5_shots.csv")
+        shots = read_csv("results/e5_shots.csv")
         print("E5 — sampled / exact MAE (km) on the same subset; lead is in days")
         display(shots.pivot(index=["shots", "noise"], columns="lead", values=["mae", "mae_exact", "n_rows"]))
 
-        sparse = pd.read_csv("results/e9_sparse.csv")
+        sparse = read_csv("results/e9_sparse.csv")
         print("E9 — test MAE (km) as hotspot days are removed; lead is in days")
         display(sparse.pivot(index=["drop_frac", "model"], columns="lead", values="mae"))
     """)
@@ -246,14 +305,14 @@ def build_notebook():
     code("""
         # E6 live recomputation from measured features and frozen weights.
         readout = read_json("results/qrc_z_readout.json")
-        measured = np.load("hardware/e6_hw_features.npy", allow_pickle=False)
+        measured = load_array("hardware/e6_hw_features.npy")
         assert measured.shape == (len(W), len(readout["feature_names"]))
         assert readout["feature_names"] == names[:measured.shape[1]]
         assert np.isfinite(measured).all()
         assert np.all((W >= 0) & (W <= 1))
         assert len(readout["scaler"]["lo"]) == W.shape[-1]
-        saved_predictions = pd.read_csv("results/e6_predictions.csv", parse_dates=["date"])
-        hardware_scores = pd.read_csv("results/e6_hardware.csv")
+        saved_predictions = read_csv("results/e6_predictions.csv", parse_dates=["date"])
+        hardware_scores = read_csv("results/e6_hardware.csv")
         checks = []
         for lead in (1, 3):
             fit = readout["readouts"][str(lead)]
@@ -324,9 +383,8 @@ def build_notebook():
         6. `scripts/build_notebook.py`
 
         Run each with `.venv/bin/python -I`. The E6 script reads the saved hardware
-        features. To reproduce just this notebook in a fresh clone, install
-        `requirements.txt` and run `.venv/bin/python -I scripts/build_notebook.py`;
-        all notebook inputs are committed.
+        features. `scripts/build_notebook.py` rebuilds this notebook: it embeds the
+        saved inputs and runs it in an empty folder to check that it needs no other files.
     """)
     return nbformat.v4.new_notebook(cells=cells, metadata={
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
@@ -342,11 +400,13 @@ def main():
     manager = KernelManager(kernel_name="python3")
     manager.kernel_spec.argv = [sys.executable, "-I", "-m", "ipykernel_launcher", "-f", "{connection_file}"]
     executor = ExecutePreprocessor(timeout=600, kernel_name="python3")
-    try:
-        executor.preprocess(notebook, {"metadata": {"path": str(ROOT)}}, km=manager)
-    finally:
-        if manager.has_kernel:
-            manager.shutdown_kernel(now=True)
+    # Execute in an empty directory: the notebook must not need any other file.
+    with tempfile.TemporaryDirectory() as empty:
+        try:
+            executor.preprocess(notebook, {"metadata": {"path": empty}}, km=manager)
+        finally:
+            if manager.has_kernel:
+                manager.shutdown_kernel(now=True)
     nbformat.validate(notebook)
     nbformat.write(notebook, NOTEBOOK)
     for cell in notebook.cells:
