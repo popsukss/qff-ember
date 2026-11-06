@@ -102,9 +102,9 @@ def build_notebook():
         | Real hardware | one fire run on `ibm_fez` to check the forecasts survive noise |
 
         **Short answer**
-        - Quantum ≈ classical models; no quantum advantage claimed.
+        - Quantum is close to classical reservoirs (worse than `esn20` at +24 h, no clear gap at +72 h); no quantum advantage claimed.
         - FBP (Canada's physics model) has the smallest error.
-        - Real `ibm_fez` hardware gives almost the same forecasts as a perfect simulator.
+        - Real `ibm_fez` hardware: average error close to a perfect simulator; single forecasts noisier.
 
         **Run:** `pip install numpy==2.5.4 pandas==3.1.1 qiskit==2.6.1 ipython`, then run all.
         No other files, data download or IBM account needed.
@@ -265,7 +265,7 @@ def build_notebook():
         | ridge weights | trained on 2018–2021 |
 
         Next cell: full reservoir code (= `ember/reservoir.py`). Feature modes: `exact`
-        (Qiskit), `numpy` (fast copy, used for training), `sampled` (finite shots).
+        (Qiskit), `numpy` (fast copy, used for training), `sampled` (finite shots; 15 Z/ZZ features, needs `qiskit_aer`).
     """)
     cells.append(nbformat.v4.new_code_cell(reservoir_source()))
     cells[-1].id = "reservoir-code"
@@ -375,7 +375,7 @@ def build_notebook():
     """)
     markdown("""
         **Takeaways**
-        - `qrc` 0.360 / 0.943 km ≈ `esn20` 0.350 / 0.934.
+        - `qrc` 0.360 / 0.943 km vs `esn20` 0.350 / 0.934: `esn20` clearly better at +24 h, no clear gap at +72 h.
         - `raw` ridge beats `qrc` by 0.01–0.02 km (clear).
         - `qrc` beats persistence only at +72 h.
         - Best MAE: `fbp`. Best IoU: `persistence` (most sectors don't move). Growing sectors: learned models win.
@@ -421,7 +421,7 @@ def build_notebook():
         display(e14_paired[["version", "lead_h", "comparison", "diff", "lo", "hi"]].reset_index(drop=True))
     """)
     markdown("""
-        **Takeaway:** ridge on raw inputs is best or within 0.001 km of best everywhere. 5 q and 7 q: quantum loses
+        **Takeaway:** ridge on raw inputs is best or within 0.0015 km of best everywhere. 5 q and 7 q: quantum loses
         to ridge and tuned ESN (both leads, both years). 10 q: ties ridge on 2022; on 2023 loses
         to ridge (+0.006 / +0.027 km) and beats ESN by a little (−0.003 / −0.008 km), the only
         quantum edge left. Seed spread is wide (10 q, 2022, +24 h: 0.276–0.307 km). Both picked
@@ -498,7 +498,8 @@ def build_notebook():
     """, cell_id="e6-recompute")
     markdown("""
         **Takeaway:** hardware 0.258 / 0.979 km vs exact 0.272 / 1.001 km; both beat
-        persistence. Forecasts survive noise. One fire, so not evidence hardware is better.
+        persistence. Average error survives noise; single forecasts differ from exact by 0.07 / 0.24 km on
+        average (max 0.57 / 1.37). One fire, so not evidence hardware is better.
         (`feature_mae` = average gap from exact features.)
     """)
 
@@ -519,10 +520,10 @@ def build_notebook():
     markdown("""
         ## Conclusions and limits
 
-        - Quantum ≈ classical reservoirs; slightly behind raw ridge. No quantum advantage.
+        - Quantum close to classical reservoirs (worse than `esn20` at +24 h); slightly behind raw ridge. No quantum advantage.
         - FBP: lowest MAE. Persistence: best IoU. Growing sectors: learned models win.
         - Beats persistence only at +72 h.
-        - Real hardware within ~0.02 km of exact (one fire).
+        - Real hardware: MAE within 0.014 / 0.022 km of exact; single forecasts differ by 0.07 / 0.24 km on average (one fire).
         - More qubits (post-hoc): 10 q ties ridge on 2022 and slightly beats tuned ESN; needs a perfect weather forecast.
         - Limits: one hardware case · no forecast for a fire's first 2 days · 30 km/day cap can merge fires ·
           no fuel-type input (base model) · 375 m–1 km satellite pixels.
@@ -538,9 +539,10 @@ def build_notebook():
         3. `scripts/run_u5b.py`
         4. `scripts/make_figures.py`
         5. `scripts/e6_hardware.py`
-        6. `scripts/e13_build_drivers.py` (terrain, fuel, weather inputs for the more-qubit versions)
-        7. `scripts/e14_fair_baselines.py`, then `scripts/plot_qubit_comparison.py`
-        8. `scripts/build_notebook_explained.py` (this notebook)
+        6. `scripts/e10_rebuild_check.py --year 2023` (E10 shape check)
+        7. `scripts/e13_build_drivers.py` (terrain, fuel, weather inputs for the more-qubit versions)
+        8. `scripts/e14_fair_baselines.py`, then `scripts/plot_qubit_comparison.py`
+        9. `scripts/build_notebook_explained.py` (this notebook)
     """)
     return nbformat.v4.new_notebook(cells=cells, metadata={
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},

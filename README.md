@@ -14,8 +14,9 @@ quantum computer.
   we do not claim a quantum advantage.
 - Canada's official fire-spread model (FBP) has the smallest average error. It knows the fuel
   type (forest, grass and so on); our model does not.
-- On a real IBM quantum computer, the forecasts came out almost the same as on a perfect
-  simulator, within about 0.02 km.
+- On a real IBM quantum computer, the average error came out close to a perfect simulator
+  (within about 0.02 km). Single forecasts were noisier: 0.07 km (24 h) and 0.24 km (72 h) apart
+  on average.
 
 ## The problem
 
@@ -133,8 +134,8 @@ could not influence any choice.
 
 What this means:
 
-- **Quantum ≈ classical.** The quantum reservoir is about level with the classical reservoir and
-  the random circuit, and slightly behind feeding the inputs straight into the weighted sum.
+- **Quantum close to classical.** The quantum reservoir is close to the classical reservoir (clearly
+  worse at 24 h, no clear gap at 72 h) and the random circuit, and slightly behind feeding the inputs straight into the weighted sum.
 - **It beats persistence only at 72 h.** At 24 h, "same speed as today" is already hard to beat.
 - **No method wins every score.** FBP has the smallest average miss. Persistence draws the best
   outline, because most slices do not move and it predicts exactly 0 for them. On slices that
@@ -153,8 +154,9 @@ weighted sum learned on the perfect simulator was applied unchanged to the hardw
 | **Real `ibm_fez`** | 0.258 | 0.979 |
 | Persistence | 0.301 | 1.228 |
 
-Real quantum computers make small errors (noise). Here the noise barely changed the forecasts.
-This is one fire, so it shows the forecasts survive the noise. It does not show that the
+Real quantum computers make small errors (noise). Here the noise barely changed the average error,
+but single forecasts moved by 0.07 km (24 h) and 0.24 km (72 h) on average. This is one fire, so it
+shows the average error survives the noise. It does not show that the
 hardware is better.
 
 ## Limits
@@ -206,6 +208,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
    .venv/bin/python -I scripts/run_u5b.py           # shot-count and missing-data checks; hardware case file
    .venv/bin/python -I scripts/make_figures.py      # figures/ and the Yellowknife map
    .venv/bin/python -I scripts/e6_hardware.py       # hardware comparison from the saved hardware results
+   .venv/bin/python -I scripts/e10_rebuild_check.py --year 2023  # E10 rebuilt shape vs CWFIS outline
    .venv/bin/python -I scripts/e13_build_drivers.py # terrain, fuel and weather inputs for the larger versions
    .venv/bin/python -I scripts/e14_fair_baselines.py   # 5, 7 and 10 qubits vs ESN and ridge, 5 seeds each
    .venv/bin/python -I scripts/plot_qubit_comparison.py # figures/qubit_comparison.png
