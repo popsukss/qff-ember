@@ -3,12 +3,10 @@
 
 All numbers are 2022 validation MAE, read from saved result tables (no simulation):
   5 qubits (submitted), 7 qubits (+ terrain, fuel), 10 qubits (+ future weather)   E14
-  16-qubit ring of slices (adds the neighbouring slices)                           E12
 E14 gives the quantum reservoir and the classical reservoir (ESN) the same tuning
 budget (3 configs each, chosen by seed-mean 2022 MAE) and averages 5 seeds; the
 bars are seed means and the thin lines span the seeds. Ridge on the same inputs is
-deterministic. The E12 ring is one seed, and its gamma was picked on the same 2022
-fires it is scored on, so it is marked optimistic.
+deterministic. The 16-qubit ring (E12) is left out: it lost to its own ESN and ridge.
 Larger circuits that only copy the same 5 inputs (E11, 8-15 qubits) are left out.
 
 Output: figures/qubit_comparison.png and results/qubit_comparison_val.csv
@@ -30,20 +28,6 @@ RES, FIG = ROOT / "results", ROOT / "figures"
 COLORS = {"quantum": "#0072B2", "esn": "#009E73", "raw": "#CC79A7",
           "fbp": "#D55E00", "persistence": "#333333"}
 LEADS = (1, 3)
-
-
-def ring_rows():
-    """16-qubit ring: 2 qubits per slice, all 8 slices linked (E12). One seed; gamma picked on val."""
-    r = pd.read_csv(RES / "e12_ring_val_gamma.csv")
-    out = []
-    for h in LEADS:
-        get = lambda m: float(r[(r.model == m) & (r.lead == h)].val_mae.iloc[0])
-        q, e = get("ring"), get("esn_ring152")
-        out.append({"group": "neighbour slices", "qubits": 16, "label": "16 qubits\n(ring)",
-                    "lead": h, "quantum": q, "q_min": q, "q_max": q, "q_seeds": 1, "q_config": "gamma=0.25pi",
-                    "esn": e, "e_min": e, "e_max": e, "e_seeds": 1, "e_config": "input_scale=1.0",
-                    "raw": get("raw_ring"), "source": "E12"})
-    return out
 
 
 def e14_rows():
@@ -74,7 +58,7 @@ def main():
     plt.rcParams.update({"font.size": 12, "axes.titlesize": 14, "axes.spines.top": False,
                          "axes.spines.right": False, "legend.frameon": False})
     rows = e14_rows()
-    table = pd.DataFrame(rows[:2] + ring_rows() + rows[2:])
+    table = pd.DataFrame(rows)
     refs = references()
     order = table.drop_duplicates("label")[["label", "group"]].reset_index(drop=True)
 

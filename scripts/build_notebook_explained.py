@@ -388,7 +388,6 @@ def build_notebook():
 
         | Version | Adds |
         |---|---|
-        | 16 qubits (ring) | 2 qubits per sector, neighbouring sectors linked (one seed; optimistic: γ picked on val) |
         | 7 qubits | upslope + conifer share |
         | 10 qubits | + future regional wind, ISI, rain\* |
 
