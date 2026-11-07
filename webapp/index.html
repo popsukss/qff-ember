@@ -66,6 +66,22 @@
   .note { color: var(--muted); font-size: 12px; margin-top: 10px; }
   .stack > * + * { margin-top: 16px; }
   .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+  .drop { display: block; border: 1.5px dashed var(--line); border-radius: 8px; padding: 14px 10px; text-align: center; cursor: pointer;
+          color: var(--muted); font-size: 13px; margin-bottom: 8px; transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+  .drop b { color: var(--ink); }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 6px; padding: 5px 9px;
+         cursor: pointer; font: inherit; font-size: 12px; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .upinfo { font-size: 12px; margin: 8px 0 0; }
+  .upinfo .ok { color: var(--esn20); } .upinfo .bad { color: var(--accent); }
+  .preview { overflow-x: auto; margin-top: 8px; max-height: 160px; overflow-y: auto; }
+  .preview table { font-size: 11px; } .preview td, .preview th { padding: 3px 5px; white-space: nowrap; text-align: left; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--bg);
+           padding: 10px 16px; border-radius: 8px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 90vw; }
+  .toast.on { opacity: 1; }
   @media (max-width: 1100px) { main { grid-template-columns: 1fr; padding: 12px 16px; } .fires { max-height: 40vh; } }
 </style>
 </head>
@@ -77,7 +93,19 @@
 </header>
 <main>
   <section class="panel">
-    <h2>Fire season</h2>
+    <h2>Your own fire (CSV)</h2>
+    <label class="drop" id="drop">
+      <input type="file" id="csv" accept=".csv,text/csv" hidden>
+      <b>Drop a CSV here</b> or click to choose<br>
+      <span style="font-size:11px">one row per day and direction: date, sector, r_km, w_k, isi, dd_km, bui, rh</span>
+    </label>
+    <div class="row">
+      <button class="btn" id="tmpl">Download template</button>
+      <button class="btn primary" id="runcsv" disabled>Forecast this fire</button>
+    </div>
+    <div class="upinfo" id="upinfo"></div>
+    <div class="preview" id="preview"></div>
+    <h2 style="margin-top:18px">Fire season</h2>
     <div class="years" id="years"></div>
     <button class="feature" id="yk" title="The 2023 fire that forced the evacuation of Yellowknife">★ Yellowknife fire, Aug 2023</button>
     <input type="search" id="search" placeholder="Search fire id">
@@ -130,6 +158,7 @@
     </div>
   </section>
 </main>
+<div class="toast" id="toast"></div>
 
 <script>
 const MODELS = [
@@ -139,7 +168,7 @@ const MODELS = [
   { key: "fbp", name: "FBP physics", dash: "10 3 2 3" },
   { key: "persistence", name: "Persistence", dash: "1 3" },
 ];
-const SPLIT = { train: "Training year (seen)", val: "Validation year", test: "Test year (unseen)" };
+const SPLIT = { train: "Training year (seen)", val: "Validation year", test: "Test year (unseen)", upload: "Your CSV (preview)" };
 const DIRS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 const state = { year: 2023, fires: [], fire: null, day: 0, h: 1, on: new Set(["qrc", "fbp", "persistence"]), timer: null };
 const cache = {};
@@ -169,6 +198,7 @@ async function init() {
     [...$("leadSeg").children].forEach((x) => x.classList.toggle("on", x === b)); renderFire(); renderYear(); };
   $("day").oninput = (e) => { state.day = +e.target.value; draw(); };
   $("play").onclick = togglePlay;
+  setupUpload();
   $("yk").onclick = async () => { await selectYear(2023, 242981);
     const f = state.fire, i = f.dates.indexOf("2023-08-15"); if (i >= 0) { state.day = i; renderFire(); } };
   $("legend").innerHTML = [
@@ -300,7 +330,7 @@ function draw() {
     s += `<polygon points="${outline(l.r, scale, cx, cy)}" fill="none" stroke="${css("--" + l.m.key)}" stroke-width="2.4" stroke-dasharray="${l.m.dash}"/>`;
   s += `<text x="${cx}" y="${cy + 4}" font-size="14" text-anchor="middle" fill="${ink}">+</text>`;
   if (!lines.length && !ahead.every((v) => v != null))
-    s += `<text x="${cx}" y="${H - 14}" font-size="13" text-anchor="middle" fill="${muted}">No forecast on this day (first 2 days of a fire, or missing data)</text>`;
+    s += `<text x="${cx}" y="12" font-size="12" text-anchor="middle" fill="${muted}">${f.split === "upload" ? "Preview: forecasts need the Ember back end (not connected)" : "No forecast on this day (first 2 days of a fire, or missing data)"}</text>`;
   svg.innerHTML = s;
   drawBars(f, i, h);
   const t = new Date(f.dates[i] + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + h);
@@ -314,7 +344,7 @@ function drawBars(f, i, h) {
     series.push({ key: m.key, name: m.name, col: css("--" + m.key), v: ((f.f[`${m.key}_${h}`] || [])[i] || []).map((x) => x == null ? null : Math.max(0, x)) });
   const vals = series.flatMap((x) => x.v).filter((x) => x != null);
   const muted = css("--muted"), lineCol = css("--line");
-  if (!vals.length) { $("bars").innerHTML = `<text x="320" y="115" text-anchor="middle" font-size="13" fill="${muted}">No forecast on this day</text>`; return; }
+  if (!vals.length) { $("bars").innerHTML = `<text x="320" y="115" text-anchor="middle" font-size="13" fill="${muted}">${f.split === "upload" ? "Forecast bars appear once the back end is connected" : "No forecast on this day"}</text>`; return; }
   const top = Math.max(0.1, ...vals) * 1.1, L = 44, R = 630, T = 12, B = 200;
   const gw = (R - L) / 8, bw = Math.min(14, (gw - 10) / series.length), y = (v) => B - (B - T) * v / top;
   let s = "";
@@ -333,6 +363,98 @@ function drawBars(f, i, h) {
 function niceStep(maxR) {
   const raw = maxR / 4, p = Math.pow(10, Math.floor(Math.log10(raw)));
   return [1, 2, 5, 10].map((m) => m * p).find((v) => v >= raw);
+}
+
+// ---- CSV upload (front end only: parsed and drawn in the browser, nothing is sent anywhere) ----
+const CSV_COLS = ["date", "sector", "r_km", "w_k", "isi", "dd_km", "bui", "rh"];
+let upload = null;
+
+function parseCSV(text) {
+  const rows = text.replace(/\r/g, "").split("\n").filter((l) => l.trim()).map((l) => {
+    const out = []; let cur = "", q = false;
+    for (const ch of l) { if (ch === '"') q = !q; else if (ch === "," && !q) { out.push(cur); cur = ""; } else cur += ch; }
+    out.push(cur); return out.map((x) => x.trim());
+  });
+  const head = (rows.shift() || []).map((h) => h.toLowerCase());
+  return { head, rows };
+}
+
+function sectorIndex(v) {
+  const k = DIRS.indexOf(String(v).toUpperCase());
+  if (k >= 0) return k;
+  const n = Number(v); return Number.isInteger(n) && n >= 0 && n < 8 ? n : -1;
+}
+
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const { head, rows } = parseCSV(String(reader.result));
+    const missing = CSV_COLS.filter((c) => !head.includes(c));
+    const col = (name) => head.indexOf(name);
+    let fire = null;
+    if (["date", "sector", "r_km"].every((c) => head.includes(c))) {
+      const byDate = new Map();
+      for (const r of rows) {
+        const d = r[col("date")], k = sectorIndex(r[col("sector")]), v = parseFloat(r[col("r_km")]);
+        if (!d || k < 0 || !isFinite(v)) continue;
+        if (!byDate.has(d)) byDate.set(d, Array(8).fill(null));
+        byDate.get(d)[k] = v;
+      }
+      const dates = [...byDate.keys()].sort();
+      if (dates.length) {
+        const r = dates.map((d) => byDate.get(d)), empty = dates.map(() => Array(8).fill(null));
+        fire = { uid: file.name.replace(/\.csv$/i, ""), split: "upload", start: dates[0], dates, r,
+                 f: { truth_1: empty, truth_3: empty }, n_days: dates.length,
+                 max_r: Math.max(0, ...r.flat().filter((x) => x != null)) };
+      }
+    }
+    upload = { file: file.name, head, rows, missing, fire };
+    $("upinfo").innerHTML = `<b>${file.name}</b> · ${rows.length} rows · ${fire ? fire.n_days + " days" : "no outline found"}<br>` +
+      (missing.length ? `<span class="bad">Missing columns: ${missing.join(", ")}</span>` : `<span class="ok">All ${CSV_COLS.length} columns found</span>`);
+    $("preview").innerHTML = `<table><tr>${head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr>` +
+      rows.slice(0, 6).map((r) => `<tr>${r.map((x) => `<td>${esc(x)}</td>`).join("")}</tr>`).join("") + `</table>`;
+    $("runcsv").disabled = false;
+    if (fire) showUpload(fire);
+  };
+  reader.readAsText(file);
+}
+
+function esc(x) { return String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
+
+function showUpload(fire) {
+  if (state.timer) togglePlay();
+  state.fire = fire; state.day = fire.dates.length - 1;
+  [...$("fires").children].forEach((d) => d.classList.remove("on"));
+  renderFire();
+  $("fireNote").textContent = "Your CSV: outline shown from the file. Forecasts appear once the Ember back end is connected.";
+}
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 3200);
+}
+
+function setupUpload() {
+  const drop = $("drop");
+  $("csv").onchange = (e) => handleFile(e.target.files[0]);
+  ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", (e) => handleFile(e.dataTransfer.files[0]));
+  $("runcsv").onclick = () => toast(upload && upload.missing.length
+    ? `Add the missing columns first: ${upload.missing.join(", ")}`
+    : "Demo only: the forecasting back end is not connected yet.");
+  $("tmpl").onclick = () => {
+    const base = [4, 3.5, 2.5, 3, 4.5, 5, 6, 5], lines = [CSV_COLS.join(",")];
+    for (let d = 0; d < 6; d++) {
+      const date = new Date(Date.UTC(2024, 6, 1 + d)).toISOString().slice(0, 10);
+      base.forEach((b, k) => lines.push([date, DIRS[k], (b + d * (k === 6 ? 1.2 : 0.4)).toFixed(2),
+        (Math.round(Math.cos((k - 6) * Math.PI / 4) * 120) / 10 || 0).toFixed(1), 8.5, (d ? (k === 6 ? 1.2 : 0.4) : 0).toFixed(2), 60, 28].join(",")));
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
+    a.download = "ember_fire_template.csv"; a.click(); URL.revokeObjectURL(a.href);
+  };
 }
 
 function togglePlay() {
