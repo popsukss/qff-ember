@@ -187,6 +187,19 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python -I scripts/build_notebook_explained.py   # notebooks/ember_explained.ipynb
 ```
 
+### Fire explorer (web app)
+
+`webapp/index.html` shows every fire from 2018 to 2023: the outline in 8 directions,
+the forecast of each model 24 h or 72 h ahead, and what the fire actually did. Pick a
+year, a fire and a day. 2018–2021 are training years (seen data), 2022 the validation
+year and 2023 the untouched test year. The data files (about 22 MB) are built from the
+processed fire tables:
+
+```bash
+.venv/bin/python -I scripts/export_webapp.py   # webapp/data/<year>.json, summary.json
+cd webapp && python3 -m http.server 8000       # open http://localhost:8000
+```
+
 ## Rebuild everything from the raw data
 
 1. Download the fire data (about 0.8 GB) from the Canadian Forest Service:
@@ -227,6 +240,7 @@ results/        result tables (CSV/JSON)
 figures/        result charts and the Yellowknife map
 hardware/       the Yellowknife hardware case, job log and measured hardware results
 notebooks/      ember_explained.ipynb (walkthrough)
+webapp/         fire explorer (index.html; data built by scripts/export_webapp.py)
 slides/         presentation
 docs/           full method and results (LaTeX)
 config.yaml     settings, locked once the 2022 choices were made

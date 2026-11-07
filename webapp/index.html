@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ember Fire Explorer</title>
+<style>
+  :root {
+    --bg: #f6f4f1; --panel: #ffffff; --ink: #1d1b19; --muted: #6b655e; --line: #e3ded7;
+    --accent: #c2410c; --accent-soft: #fde7da;
+    --qrc: #0072B2; --esn20: #009E73; --raw: #CC79A7; --fbp: #D55E00; --persistence: #555555;
+    --today: #b9b1a6; --truth: #1d1b19;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161412; --panel: #211e1b; --ink: #f1ece6; --muted: #a39b91; --line: #3a3530;
+      --accent: #fb923c; --accent-soft: #3b2417; --today: #5d564e; --truth: #f1ece6;
+      --qrc: #56B4E9; --persistence: #b5b0aa;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 20px 24px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+  header h1 span { color: var(--accent); }
+  header p { margin: 4px 0 0; color: var(--muted); max-width: 900px; }
+  main { display: grid; grid-template-columns: 300px 1fr 330px; gap: 16px; padding: 16px 24px 32px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 10px; }
+  .years { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .years button { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 6px;
+                  padding: 5px 8px; cursor: pointer; font: inherit; font-size: 13px; }
+  .years button small { display: block; font-size: 10px; color: var(--muted); }
+  .years button.on { background: var(--accent-soft); border-color: var(--accent); }
+  input[type=search] { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px;
+                       background: var(--bg); color: var(--ink); font: inherit; margin-bottom: 8px; }
+  .feature { width: 100%; text-align: left; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--ink);
+             border-radius: 6px; padding: 7px 9px; margin-bottom: 8px; cursor: pointer; font: inherit; font-size: 13px; }
+  .fires { max-height: 62vh; overflow-y: auto; border-top: 1px solid var(--line); }
+  .fire { padding: 7px 4px; border-bottom: 1px solid var(--line); cursor: pointer; display: flex;
+          justify-content: space-between; gap: 8px; font-size: 13px; }
+  .fire:hover { background: var(--bg); }
+  .fire.on { background: var(--accent-soft); }
+  .fire .meta { color: var(--muted); font-size: 12px; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 10px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; color: var(--ink); padding: 5px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .day { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px; }
+  .day input { flex: 1; accent-color: var(--accent); }
+  .play { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 6px;
+          width: 34px; height: 30px; cursor: pointer; font-size: 14px; }
+  .title-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .title-row h3 { margin: 0 0 2px; font-size: 18px; }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+  svg { width: 100%; height: auto; display: block; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; margin-top: 6px; }
+  .legend label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .sw { width: 22px; height: 0; border-top: 3px solid; display: inline-block; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 5px 4px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.best { font-weight: 700; color: var(--accent); }
+  .note { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  .stack > * + * { margin-top: 16px; }
+  .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; padding: 12px 16px; } .fires { max-height: 40vh; } }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>Ember</span> · wildfire edge forecasts with a 5-qubit quantum reservoir</h1>
+  <p>Pick a fire season and a fire. Each day, Ember forecasts how far the edge moves in 8 directions,
+     24 h or 72 h ahead, and compares it with classical models and what the fire actually did.</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>Fire season</h2>
+    <div class="years" id="years"></div>
+    <button class="feature" id="yk" title="The 2023 fire that forced the evacuation of Yellowknife">★ Yellowknife fire, Aug 2023</button>
+    <input type="search" id="search" placeholder="Search fire id">
+    <div class="meta" id="count" style="font-size:12px;color:var(--muted);margin-bottom:6px"></div>
+    <div class="fires" id="fires"></div>
+  </section>
+
+  <section class="panel">
+    <div class="title-row">
+      <div><h3 id="fireTitle">Loading…</h3><div class="meta" id="fireMeta" style="color:var(--muted);font-size:13px"></div></div>
+      <span class="tag" id="splitTag"></span>
+    </div>
+    <div class="controls" style="margin-top:12px">
+      <div class="seg" id="leadSeg"><button data-h="1" class="on">+24 h</button><button data-h="3">+72 h</button></div>
+      <div class="day">
+        <button class="play" id="play" title="Play">▶</button>
+        <input type="range" id="day" min="0" max="0" value="0">
+        <span id="dayLabel" style="min-width:150px;font-size:13px"></span>
+      </div>
+    </div>
+    <svg id="plot" viewBox="0 0 640 560" role="img" aria-label="Fire outline and forecasts"></svg>
+    <div class="legend" id="legend"></div>
+    <h2 style="margin-top:18px">Edge advance by direction on this day (km)</h2>
+    <svg id="bars" viewBox="0 0 640 230" role="img" aria-label="Forecast and actual edge advance per direction"></svg>
+    <p class="note">Outlines are drawn in km from the fire's day-1 centre. Each corner is one of 8 directions
+      (N, NE, E, …); a forecast moves each corner outward by the predicted edge advance.</p>
+  </section>
+
+  <section class="stack">
+    <div class="panel">
+      <h2>This fire: average miss (km)</h2>
+      <table id="fireTable"></table>
+      <p class="note" id="fireNote"></p>
+    </div>
+    <div class="panel">
+      <h2>This season: average miss (km)</h2>
+      <table id="yearTable"></table>
+      <p class="note" id="yearNote"></p>
+    </div>
+    <div class="panel">
+      <h2>How to read it</h2>
+      <p class="note" style="margin-top:0">
+        <b>Quantum reservoir</b>: 5 qubits, one per input (wind toward the sector, ISI, today's advance, BUI, humidity),
+        last 5 days, fixed circuit; only a ridge read-out is trained.<br>
+        <b>ESN</b>: classical reservoir, 20 units. <b>Ridge</b>: the same inputs fed straight into the read-out.<br>
+        <b>FBP</b>: Canada's fire-behaviour spread rate (uses fuel type). <b>Persistence</b>: today's advance repeated.<br>
+        All models were trained on 2018–2021 only and settings were chosen on 2022, so 2018–2021 are seen data,
+        2022 is the validation year and 2023 is the untouched test year.
+      </p>
+    </div>
+  </section>
+</main>
+
+<script>
+const MODELS = [
+  { key: "qrc", name: "Quantum reservoir", dash: "8 5" },
+  { key: "esn20", name: "ESN (20 units)", dash: "" },
+  { key: "raw", name: "Ridge, raw inputs", dash: "2 4" },
+  { key: "fbp", name: "FBP physics", dash: "10 3 2 3" },
+  { key: "persistence", name: "Persistence", dash: "1 3" },
+];
+const SPLIT = { train: "Training year (seen)", val: "Validation year", test: "Test year (unseen)" };
+const DIRS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+const state = { year: 2023, fires: [], fire: null, day: 0, h: 1, on: new Set(["qrc", "fbp", "persistence"]), timer: null };
+const cache = {};
+let summary = null;
+
+const $ = (id) => document.getElementById(id);
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+async function load(path) {
+  if (!cache[path]) cache[path] = fetch(path).then((r) => { if (!r.ok) throw new Error(path); return r.json(); });
+  return cache[path];
+}
+
+function fmt(v, d = 3) { return v == null || !isFinite(v) ? "–" : v.toFixed(d); }
+
+async function init() {
+  try { summary = await load("data/summary.json"); }
+  catch (e) { $("fireTitle").textContent = "Data not found: run scripts/export_webapp.py, then serve this folder."; return; }
+  const years = Object.keys(summary.years).map(Number).sort();
+  $("years").innerHTML = years.map((y) => {
+    const s = summary.years[y].split;
+    return `<button data-y="${y}">${y}<small>${s === "train" ? "train" : s === "val" ? "validation" : "test"}</small></button>`;
+  }).join("");
+  $("years").onclick = (e) => { const b = e.target.closest("button"); if (b) selectYear(+b.dataset.y); };
+  $("search").oninput = renderList;
+  $("leadSeg").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; state.h = +b.dataset.h;
+    [...$("leadSeg").children].forEach((x) => x.classList.toggle("on", x === b)); renderFire(); renderYear(); };
+  $("day").oninput = (e) => { state.day = +e.target.value; draw(); };
+  $("play").onclick = togglePlay;
+  $("yk").onclick = async () => { await selectYear(2023, 242981);
+    const f = state.fire, i = f.dates.indexOf("2023-08-15"); if (i >= 0) { state.day = i; renderFire(); } };
+  $("legend").innerHTML = [
+    `<label><span class="sw" style="border-color:${css("--today")}"></span>Today (observed)</label>`,
+    `<label><span class="sw" style="border-color:${css("--truth")}"></span>Actual at lead</label>`,
+    ...MODELS.map((m) => `<label><input type="checkbox" data-m="${m.key}" ${state.on.has(m.key) ? "checked" : ""}>
+      <span class="sw" style="border-color:${css("--" + m.key)};border-top-style:${m.dash ? "dashed" : "solid"}"></span>${m.name}</label>`),
+  ].join("");
+  $("legend").onchange = (e) => { const k = e.target.dataset.m; if (!k) return;
+    e.target.checked ? state.on.add(k) : state.on.delete(k); draw(); };
+  const want = new URLSearchParams(location.search);
+  await selectYear(+(want.get("year") || 2023), +want.get("fire") || null);
+}
+
+async function selectYear(y, uid = null) {
+  state.year = y;
+  [...$("years").children].forEach((b) => b.classList.toggle("on", +b.dataset.y === y));
+  $("fires").innerHTML = `<div class="empty">Loading ${y}…</div>`;
+  const data = await load(`data/${y}.json`);
+  state.fires = data.fires;
+  renderList();
+  renderYear();
+  const pick = state.fires.find((f) => f.uid === uid) || state.fires[0];
+  if (pick) selectFire(pick.uid);
+}
+
+function renderList() {
+  const q = $("search").value.trim();
+  const list = state.fires.filter((f) => !q || String(f.uid).includes(q));
+  $("count").textContent = `${list.length} fires, largest first`;
+  $("fires").innerHTML = list.slice(0, 400).map((f) => `<div class="fire ${state.fire && f.uid === state.fire.uid ? "on" : ""}" data-u="${f.uid}">
+      <span>Fire ${f.uid}</span><span class="meta">${f.start} · ${f.n_days} d · ${f.max_r.toFixed(1)} km</span></div>`).join("");
+  $("fires").onclick = (e) => { const d = e.target.closest(".fire"); if (d) selectFire(+d.dataset.u); };
+}
+
+function forecastDays(fire) {
+  // Days with at least one model forecast at the chosen lead.
+  const out = [];
+  fire.dates.forEach((_, i) => { if (MODELS.some((m) => (fire.f[`${m.key}_${state.h}`] || [])[i]?.some((v) => v != null))) out.push(i); });
+  return out;
+}
+
+function selectFire(uid) {
+  state.fire = state.fires.find((f) => f.uid === uid);
+  [...$("fires").children].forEach((d) => d.classList.toggle("on", +d.dataset.u === uid));
+  history.replaceState(null, "", `?year=${state.year}&fire=${uid}`);
+  const days = forecastDays(state.fire);
+  state.day = days.length ? days[Math.min(days.length - 1, Math.floor(days.length / 2))] : 0;
+  renderFire();
+}
+
+function renderFire() {
+  const f = state.fire; if (!f) return;
+  $("fireTitle").textContent = `Fire ${f.uid}`;
+  $("fireMeta").textContent = `${f.dates[0]} → ${f.dates[f.dates.length - 1]} · ${f.n_days} days · max edge ${f.max_r.toFixed(1)} km from centre`;
+  $("splitTag").textContent = SPLIT[f.split] || f.split;
+  $("day").max = f.dates.length - 1;
+  $("day").value = state.day;
+  // Per-fire average miss for each model at this lead, over days where every model forecasts.
+  const truth = f.f[`truth_${state.h}`];
+  const rows = MODELS.map((m) => {
+    const p = f.f[`${m.key}_${state.h}`]; let s = 0, n = 0;
+    if (p) p.forEach((row, i) => row.forEach((v, k) => { const t = truth[i][k]; if (v != null && t != null) { s += Math.abs(v - t); n++; } }));
+    return { m, mae: n ? s / n : null, n };
+  });
+  const best = Math.min(...rows.filter((r) => r.mae != null).map((r) => r.mae));
+  $("fireTable").innerHTML = `<tr><th>Model</th><th>+${24 * state.h} h</th><th>sector-days</th></tr>` +
+    rows.map((r) => `<tr><td>${r.m.name}</td><td class="${r.mae === best ? "best" : ""}">${fmt(r.mae)}</td><td>${r.n}</td></tr>`).join("");
+  $("fireNote").textContent = rows[0].n ? "One fire is a small sample; use the season table for comparisons." :
+    "No scored forecasts for this fire at this lead (too short or missing days).";
+  draw();
+}
+
+function renderYear() {
+  if (!summary) return;
+  const split = summary.years[state.year].split;
+  const rows = MODELS.map((m) => {
+    const r = summary.metrics.find((x) => x.model === m.key && x.split === split && x.lead === state.h);
+    return { m, mae: r ? r.mae : null, n: r ? r.n_fires : null };
+  });
+  const best = Math.min(...rows.filter((r) => r.mae != null).map((r) => r.mae));
+  $("yearTable").innerHTML = `<tr><th>Model</th><th>+${24 * state.h} h</th></tr>` +
+    rows.map((r) => `<tr><td>${r.m.name}</td><td class="${r.mae === best ? "best" : ""}">${fmt(r.mae)}</td></tr>`).join("");
+  const label = split === "train" ? "2018–2021 together (training fires, in-sample)" : split === "val" ? "2022 validation fires" : "2023 test fires, scored once";
+  const n = rows[0].n;
+  $("yearNote").textContent = `${label}${n ? `, ${n} fires` : ""}.`;
+}
+
+function outline(radii, scale, cx, cy) {
+  return radii.map((r, k) => {
+    const a = (k * 45) * Math.PI / 180;
+    return `${(cx + scale * r * Math.sin(a)).toFixed(1)},${(cy - scale * r * Math.cos(a)).toFixed(1)}`;
+  }).join(" ");
+}
+
+function draw() {
+  const f = state.fire, svg = $("plot"); if (!f) return;
+  const i = state.day, h = state.h;
+  const today = f.r[i];
+  const ahead = (f.f[`truth_${h}`][i] || []).map((y, k) => (y == null || today[k] == null ? null : today[k] + y));
+  const lines = [];
+  for (const m of MODELS) {
+    if (!state.on.has(m.key)) continue;
+    const p = (f.f[`${m.key}_${h}`] || [])[i];
+    if (p && p.every((v) => v != null) && today.every((v) => v != null))
+      lines.push({ m, r: today.map((r, k) => r + Math.max(0, p[k])) });
+  }
+  const all = [today, ahead, ...lines.map((l) => l.r)].flat().filter((v) => v != null);
+  const maxR = Math.max(1, ...all) * 1.12;
+  const W = 640, H = 560, cx = 300, cy = 285, scale = 245 / maxR;
+  const ink = css("--ink"), muted = css("--muted"), lineCol = css("--line");
+  let s = "";
+  // Rings and spokes.
+  const step = niceStep(maxR);
+  for (let r = step; r < maxR; r += step) {
+    s += `<circle cx="${cx}" cy="${cy}" r="${(r * scale).toFixed(1)}" fill="none" stroke="${lineCol}"/>`;
+    s += `<text x="${cx + 4}" y="${(cy - r * scale - 3).toFixed(1)}" font-size="11" fill="${muted}">${r} km</text>`;
+  }
+  DIRS.forEach((d, k) => {
+    const a = k * 45 * Math.PI / 180, R = maxR * scale;
+    s += `<line x1="${cx}" y1="${cy}" x2="${(cx + R * Math.sin(a)).toFixed(1)}" y2="${(cy - R * Math.cos(a)).toFixed(1)}" stroke="${lineCol}"/>`;
+    s += `<text x="${(cx + (R + 14) * Math.sin(a)).toFixed(1)}" y="${(cy - (R + 14) * Math.cos(a) + 4).toFixed(1)}" font-size="12" text-anchor="middle" fill="${muted}">${d}</text>`;
+  });
+  if (today.every((v) => v != null))
+    s += `<polygon points="${outline(today, scale, cx, cy)}" fill="${css("--today")}" fill-opacity="0.35" stroke="${css("--today")}" stroke-width="2"/>`;
+  if (ahead.every((v) => v != null))
+    s += `<polygon points="${outline(ahead, scale, cx, cy)}" fill="none" stroke="${css("--truth")}" stroke-width="2.6"/>`;
+  for (const l of lines)
+    s += `<polygon points="${outline(l.r, scale, cx, cy)}" fill="none" stroke="${css("--" + l.m.key)}" stroke-width="2.4" stroke-dasharray="${l.m.dash}"/>`;
+  s += `<text x="${cx}" y="${cy + 4}" font-size="14" text-anchor="middle" fill="${ink}">+</text>`;
+  if (!lines.length && !ahead.every((v) => v != null))
+    s += `<text x="${cx}" y="${H - 14}" font-size="13" text-anchor="middle" fill="${muted}">No forecast on this day (first 2 days of a fire, or missing data)</text>`;
+  svg.innerHTML = s;
+  drawBars(f, i, h);
+  const t = new Date(f.dates[i] + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + h);
+  $("dayLabel").textContent = `${f.dates[i]} (day ${i + 1}) → ${t.toISOString().slice(0, 10)}`;
+}
+
+function drawBars(f, i, h) {
+  const truth = (f.f[`truth_${h}`] || [])[i] || [];
+  const series = [{ key: "truth", name: "Actual", col: css("--truth"), v: truth }];
+  for (const m of MODELS) if (state.on.has(m.key))
+    series.push({ key: m.key, name: m.name, col: css("--" + m.key), v: ((f.f[`${m.key}_${h}`] || [])[i] || []).map((x) => x == null ? null : Math.max(0, x)) });
+  const vals = series.flatMap((x) => x.v).filter((x) => x != null);
+  const muted = css("--muted"), lineCol = css("--line");
+  if (!vals.length) { $("bars").innerHTML = `<text x="320" y="115" text-anchor="middle" font-size="13" fill="${muted}">No forecast on this day</text>`; return; }
+  const top = Math.max(0.1, ...vals) * 1.1, L = 44, R = 630, T = 12, B = 200;
+  const gw = (R - L) / 8, bw = Math.min(14, (gw - 10) / series.length), y = (v) => B - (B - T) * v / top;
+  let s = "";
+  const step = niceStep(top);
+  for (let v = 0; v <= top; v += step) s += `<line x1="${L}" x2="${R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="${lineCol}"/>
+    <text x="${L - 6}" y="${(y(v) + 4).toFixed(1)}" font-size="11" text-anchor="end" fill="${muted}">${+v.toFixed(2)}</text>`;
+  DIRS.forEach((d, k) => {
+    const x0 = L + k * gw + (gw - bw * series.length) / 2;
+    series.forEach((ser, j) => { const v = ser.v[k]; if (v == null) return;
+      s += `<rect x="${(x0 + j * bw).toFixed(1)}" y="${y(v).toFixed(1)}" width="${(bw - 2).toFixed(1)}" height="${Math.max(0.5, B - y(v)).toFixed(1)}" fill="${ser.col}" rx="1.5"><title>${d} · ${ser.name}: ${v.toFixed(2)} km</title></rect>`; });
+    s += `<text x="${(L + k * gw + gw / 2).toFixed(1)}" y="${B + 18}" font-size="12" text-anchor="middle" fill="${muted}">${d}</text>`;
+  });
+  $("bars").innerHTML = s;
+}
+
+function niceStep(maxR) {
+  const raw = maxR / 4, p = Math.pow(10, Math.floor(Math.log10(raw)));
+  return [1, 2, 5, 10].map((m) => m * p).find((v) => v >= raw);
+}
+
+function togglePlay() {
+  if (state.timer) { clearInterval(state.timer); state.timer = null; $("play").textContent = "▶"; return; }
+  $("play").textContent = "❚❚";
+  state.timer = setInterval(() => {
+    state.day = (state.day + 1) % state.fire.dates.length;
+    $("day").value = state.day; draw();
+  }, 700);
+}
+
+init();
+</script>
+</body>
+</html>

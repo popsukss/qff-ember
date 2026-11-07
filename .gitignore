@@ -8,3 +8,4 @@ __pycache__/
 *.out
 *.pdf
 data/processed/
+webapp/data/
